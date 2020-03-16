@@ -1,0 +1,12 @@
+data/*
+data/
+env/*
+env/
+docker-python/neo4j-community-4.0.0/*
+docker-python/neo4j-community-4.0.0/
+*.img.tar
+*__
+*__.py
+mount_folder/*
+mount_folder/
+*.db
