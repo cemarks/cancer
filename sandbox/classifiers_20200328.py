@@ -7,142 +7,110 @@ import numpy as np
 import re
 import stringdist
 
-FT_SEARCH_CUTOFF = 0 # Discard search results with lower scores than this
+FT_SEARCH_CUTOFF = np.exp(1) # Discard search results with lower scores than this
 NAMEINDEX_SEARCH_REQD = 25 # If this many results are not found in full text searches on column names, a synonym decomposition will be used.
 NAMEINDEX_CDE_REQD = 5
 FOLLOW_ON_SEARCH_MIN_WORD_LEN = 3
-DISPLAY_FORMATS = [
-    "mm/dd/yy",
-    "MM/DD/YYYY",
-    "DD/MON/YYYY",
-    "YYYY-MM-DD",
-    "YYYY",
-    "TIME (HR(24):MN)",
-    "YYYYMMDD",
-    "9999.99",
-    "mm/dd/yyyy",
-    "9999999",
-    "10,3",
-    "9999.9",
-    "%",
-    "999.9",
-    "99.9",
-    "hh:mm:ss",
-    "999.99",
-    "9.999",
-    "999999.9",
-    "hh:mm",
-    "hh:mm:ss:rr",
-    "TIME_MIN",
-    "99.99",
-    "9999.999",
-    "MMYYYY",
-    "TIME_HH:MM",
-    "99999.99",
-    "MMDDYYYY",
-    "999-99-9999",
-    "YYYYMM"
-]
-
-DATATYPES = [
-    "Integer",
-    "CHARACTER",
-    "DATETIME",
-    "SAS Date",
-    "SAS Time",
-    "NUMBER",
-    "varchar",
-    "DATE",
-    "ALPHANUMERIC",
-    "TIME",
-    "HL7EDv3",
-    "BOOLEAN",
-    "binary",
-    "Numeric Alpha DVG",
-    "Date Alpha DVG",
-    "Derived",
-    "UMLUidv1.0",
-    "DATE/TIME",
-    "HL7STv3",
-    "CLOB",
-    "HL7CDv3",
-    "HL7INTv3",
-    "HL7REALv3",
-    "HL7TSv3",
-    "HL7PNv3",
-    "HL7TELv3",
-    "OBJECT",
-    "Alpha DVG"
-
-]
 
 X_FT_STRUCTURE = {
     'index':{
         'column_no': 0,
         'ft_postprocess_params': {}
     },
-    'cde_id':{
-        'column_no': 1,
-        'ft_postprocess_params': {}
-    },
     'ftsearch_syn_class':{
-        'column_no': 2,
+        'column_no': 1,
         'ft_postprocess_params': {
             'Synonym':{
-                'query': lambda z: f"MATCH (n) - [:IS_CALLED] - (:Concept) - [:IS_CLASS] - (m:CDE) WHERE ID(n) = {z} RETURN ID(m), m.CDE_ID",
+                'query': lambda z: f"MATCH (n) - [:IS_CALLED] - (:Concept) - [:IS_CLASS] - (m:CDE) WHERE ID(n) = {z} RETURN ID(m)",
                 'aggregation': lambda old,new: old + new
             }
         }
     },
     'ftsearch_syn_prop':{
-        'column_no': 3,
+        'column_no': 2,
         'ft_postprocess_params': {
             'Synonym':{
-                'query': lambda z: f"MATCH (n) - [:IS_CALLED] - (:Concept) - [:IS_PROP] - (:DEC) - [:IS_CAT] - (m:CDE) WHERE ID(n) = {z} RETURN ID(m), m.CDE_ID",
+                'query': lambda z: f"MATCH (n) - [:IS_CALLED] - (:Concept) - [:IS_PROP] - (:DEC) - [:IS_CAT] - (m:CDE) WHERE ID(n) = {z} RETURN ID(m)",
                 'aggregation': lambda old,new: old + new
             }
         }
     },
     'ftsearch_syn_obj':{
-        'column_no': 4,
+        'column_no': 3,
         'ft_postprocess_params': {
             'Synonym':{
-                'query': lambda z: f"MATCH (n) - [:IS_CALLED] - (:Concept) - [:IS_OBJ] - (:DEC) - [:IS_CAT] - (m:CDE) WHERE ID(n) = {z} RETURN ID(m), m.CDE_ID",
+                'query': lambda z: f"MATCH (n) - [:IS_CALLED] - (:Concept) - [:IS_OBJ] - (:DEC) - [:IS_CAT] - (m:CDE) WHERE ID(n) = {z} RETURN ID(m)",
                 'aggregation': lambda old,new: old + new
             }
         }
     },
     'ftsearch_cde':{
-        'column_no': 5,
+        'column_no': 4,
         'ft_postprocess_params': {
             'CDE_Name':{
-                'query': lambda z: f"MATCH (n) - [:IS_SHORT] - (m:CDE) WHERE ID(n) = {z} RETURN ID(m), m.CDE_ID",
+                'query': lambda z: f"MATCH (n) - [:IS_SHORT] - (m:CDE) WHERE ID(n) = {z} RETURN ID(m)",
                 'aggregation': lambda old,new: max([old,new])
             },
             'CDE':{
-                'query': lambda z: f"MATCH (n:CDE) WHERE ID(n) = {z} RETURN ID(n), n.CDE_ID",
+                'query': lambda z: f"RETURN {z}",
                 'aggregation': lambda old,new: max([old,new])
             }
         }
     },
     'ftsearch_dec':{
-        'column_no': 6,
+        'column_no': 5,
         'ft_postprocess_params': {
             'DEC':{
-                'query': lambda z: f"MATCH (n) - [:IS_CAT] - (m:CDE) WHERE ID(n) = {z} RETURN ID(m), m.CDE_ID",
+                'query': lambda z: f"MATCH (n) - [:IS_CAT] - (m:CDE) WHERE ID(n) = {z} RETURN ID(m)",
                 'aggregation': lambda old,new: old + new
             }
         }
     },
     'ftsearch_question':{
-        'column_no': 7,
+        'column_no': 6,
         'ft_postprocess_params': {
             'QuestionText':{
-                'query': lambda z: f"MATCH (n) - [:QUESTION] - (m:CDE) WHERE ID(n) = {z} RETURN ID(m), m.CDE_ID",
+                'query': lambda z: f"MATCH (n) - [:QUESTION] - (m:CDE) WHERE ID(n) = {z} RETURN ID(m)",
                 'aggregation': lambda old,new: max([old,new])
             }
         }
-    }
+    },
+    # 'synsearch_class':{
+    #     'column_no': 10,
+    #     'apply_to':[
+    #         'syn_search'
+    #     ],
+    #     'synsearch_postprocess_params': {
+    #         'Synonym':{
+    #             'query': lambda z: f"MATCH (n) - [:IS_CALLED] - (:Concept) - [:IS_CLASS] - (m:CDE) WHERE ID(n) = {z} RETURN ID(m)",
+    #             'aggregation': lambda old,new: old + new
+    #         }
+    #     }
+    # },
+    # 'synsearch_prop':{
+    #     'column_no': 11,
+    #     'apply_to':[
+    #         'syn_search'
+    #     ],
+    #     'synsearch_postprocess_params': {
+    #         'Synonym':{
+    #             'query': lambda z: f"MATCH (n) - [:IS_CALLED] - (:Concept) - [:IS_PROP] - (:DEC) - [:IS_CAT] - (m:CDE) WHERE ID(n) = {z} RETURN ID(m)",
+    #             'aggregation': lambda old,new: old + new
+    #         }
+    #     }
+    # },
+    # 'synsearch_obj':{
+    #     'column_no': 12,
+    #     'apply_to':[
+    #         'syn_search'
+    #     ],
+    #     'synsearch_postprocess_params': {
+    #         'Synonym':{
+    #             'query': lambda z: f"MATCH (n) - [:IS_CALLED] - (:Concept) - [:IS_OBJ] - (:DEC) - [:IS_CAT] - (m:CDE) WHERE ID(n) = {z} RETURN ID(m)",
+    #             'aggregation': lambda old,new: old + new
+    #         }
+    #     }
+    # }
 }
 
 def check_datatype(value,data_type_str):
@@ -464,86 +432,59 @@ def full_str_match_short(col_name,g):
     result = query_graph(query,g)
     return result.value()
 
-def clean_string_for_fulltext(input_string):
-    s = str(input_string).replace("/"," ").replace(","," ").replace("+"," ").replace("-"," ").replace("("," ").replace(")"," ").replace("["," ").replace("]"," ")
-    return s.lower()
-
 def nameindex_query(input_string,g):
     query = "CALL db.index.fulltext.queryNodes(\"nameindex\",\"{0:s}\") YIELD node, score RETURN ID(node), score, LABELS(node)".format(str(input_string))
     result = query_graph(query,g)
     return result.values()
 
-def nameindex_query_multiple(input_string_list,g,score_coef=1):
-    if isinstance(score_coef,list):
-        if len(score_coef) != len(input_string_list):
-            raise ValueError("nameindex query score coef length mismatch")
-        else:
-            score_coef_list = score_coef
-    else:
-        score_coef_list = [score_coef] * len(input_string_list)
-    query = "CALL {\n"
-    input_string = input_string_list[0]
-    query += " CALL db.index.fulltext.queryNodes(\"nameindex\",\"{0:s}\") YIELD node, score \n".format(str(input_string))
-    query += " WHERE score > {0:1.2f}\n".format(FT_SEARCH_CUTOFF/score_coef_list[0])
-    query += " RETURN ID(node) as node_id, {0:1.2f} * score AS normal_score, LABELS(node) as node_labels\n".format(score_coef_list[0])
-    for i in range(1,len(input_string_list)):
-        input_string = input_string_list[i]
-        query += " UNION ALL"
-        query += " CALL db.index.fulltext.queryNodes(\"nameindex\",\"{0:s}\") YIELD node, score \n".format(str(input_string))
-        query += " WHERE score > {0:1.2f}\n".format(FT_SEARCH_CUTOFF/score_coef_list[i])
-        query += " RETURN ID(node) as node_id, {0:1.2f} * score AS normal_score, LABELS(node) as node_labels\n".format(score_coef_list[i])
-    query += "}\n"
-    query += "RETURN node_id,MAX(normal_score),node_labels\n"
-    result = query_graph(query,g)
-    return result.values()
-
-
-
-def create_data_row(input_row):
+def create_data_row(input_index):
     cols = [(i,X_FT_STRUCTURE[i]['column_no']) for i in X_FT_STRUCTURE]
     cols.sort(key=lambda z: z[1])
-    d = {}
-    for c in cols:
-        if c[0] == 'index':
-            d[c[0]] = [input_row[0]]
-        elif c[0] == 'cde_id':
-            d[c[0]] = [input_row[1]]
-        else:
-            d[c[0]] = [0]
+    d = {i[0]:[input_index] if i[0]=='index' else [0] for i in cols}
     return pd.DataFrame(d)
 
-def get_CDEs(ft_result,update_column,g):
+def get_CDE_indices(ft_result,update_column,g):
     node_type = ft_result[2][0]
     node_index = ft_result[0]
     query = X_FT_STRUCTURE[update_column]['ft_postprocess_params'][node_type]['query'](node_index)
     result = query_graph(query,g)
-    values = result.values()
+    values = result.value()
     return values
 
-def update_data(df,ft_result,update_column,update_cde_index,g):
+def update_data(df,ft_result,update_column,update_index,g):
     plus_value = ft_result[1]
     node_type = ft_result[2][0]
+    update_indices = get_CDE_indices(ft_result,update_column,g)
     if update_column not in df.columns:
         raise ValueError("{0:s} column not in DataFrame".format(update_column))
     new_value = X_FT_STRUCTURE[update_column]['ft_postprocess_params'][node_type]['aggregation'](
-        df[update_column].loc[df['index']==update_cde_index].values[0],
+        df[update_column].loc[df['index']==update_index].values[0],
         plus_value
     )
-    df.loc[df['index']==update_cde_index,update_column] = new_value
-    return df
+    df.loc[df['index']==update_index,update_column] = new_value
 
 
 def create_or_update(df,ft_result,update_column,g):
-    if update_column not in df.columns:
-        raise ValueError("{0:s} column not in DataFrame".format(update_column))
-    update_cdes = get_CDEs(ft_result,update_column,g)
-    for update_row in update_cdes:
-        update_index = update_row[0]
+    update_indices = get_CDE_indices(ft_result,update_column,g)
+    for update_index in update_indices:
+        if update_column not in df.columns:
+            raise ValueError("{0:s} column not in DataFrame".format(update_column))
         if update_index not in df['index'].values:
-            new_row = create_data_row(update_row)
+            new_row = create_data_row(update_index)
             df = df.append(new_row)
-        df = update_data(df,ft_result,update_column,update_index,g)
+        update_data(df,ft_result,update_column,update_index,g)
     return df
+
+# def enumeration_exact_search(unique_values_list,g):
+#     unique_values_lower = ["'" + str(i).lower() + "'" for i in unique_values_list]
+#     unique_values_lower = list(set(unique_values_lower))
+#     query = "MATCH (n:AnswerText) - [:CAN_BE] - (m:Answer) WHERE n.name_lower in [{0:s}] ".format(",".join(unique_values_lower))
+#     query += "WITH DISTINCT(m) AS ans MATCH (ans) - [:PERMITS] - (c:CDE) "
+#     query += "RETURN ID(c), c.CDE_ID, COUNT(*)*1.0/{0:d}".format(len(unique_values_list))
+#     result = query_graph(query,g)
+#     values = result.values()
+#     values.sort(key = lambda z: z[2], reverse=True)
+#     return values
 
 def enumeration_exact_search(unique_values_list,g):
     unique_values_lower = ["'" + str(i).lower() + "'" for i in unique_values_list]
@@ -557,6 +498,25 @@ def enumeration_exact_search(unique_values_list,g):
     return values
 
 
+# def enumeration_fulltext_search(unique_values_list,g):
+#     query = "CALL db.index.fulltext.queryNodes(\"ansindex\",\"{0:s}\") YIELD node AS n, score\n".format(str(single_unique_value))
+#     query += " MATCH (n:AnswerText) - [:CAN_BE] - (m:Answer) - [:PERMITS] - (c:CDE)\n"
+#     query += " RETURN ID(c), c.CDE_ID, score"
+#     result = query_graph(query,g)
+#     values = result.values()
+#     values.sort(key = lambda z: z[2], reverse=True)
+#     return values
+
+
+# def enumeration_ansindex_single_search(single_unique_value,g):
+#     query = "CALL db.index.fulltext.queryNodes(\"ansindex\",\"{0:s}\") YIELD node AS n, score\n".format(str(single_unique_value))
+#     query += " MATCH (n:AnswerText) - [:CAN_BE] - (a:Answer)\n"
+#     query += " WITH a,MAX(score) AS max_score\n"
+#     query += " MATCH (a:Answer) - [:PERMITS] - (c:CDE)\n"
+#     query += " RETURN ID(c), c.CDE_ID, SUM(max_score)"
+#     result = query_graph(query,g)
+#     return result.values()
+
 def enumeration_ansindex_single_search(single_unique_value,g):
     query = "CALL db.index.fulltext.queryNodes(\"ansindex\",\"{0:s}\") YIELD node AS n, score\n".format(str(single_unique_value))
     query += " MATCH (n:AnswerText) - [:CAN_BE] - (a:Answer) - [:PERMITS] - (c:CDE) \n"
@@ -564,6 +524,17 @@ def enumeration_ansindex_single_search(single_unique_value,g):
     result = query_graph(query,g)
     return result.values()
 
+
+# def enumeration_concept_single_search(single_unique_value,g):
+#     query = "CALL db.index.fulltext.queryNodes(\"nameindex\",\"{0:s}\") YIELD node AS n, score\n".format(str(single_unique_value))
+#     query += " MATCH (n:Synonym) - [:IS_CALLED] - (con:Concept) - [:EQUALS] - (a:Answer)\n"
+#     query += " WITH a,MAX(score) AS max_score\n"
+#     query += " MATCH (a) - [:PERMITS] - (c:CDE)\n"
+#     query += " RETURN ID(c), c.CDE_ID, SUM(max_score)"
+#     result = query_graph(query,g)
+#     values = result.values()
+#     values.sort(key = lambda z: z[2], reverse=True)
+#     return values
 
 def enumeration_concept_single_search(single_unique_value,g):
     query = "CALL db.index.fulltext.queryNodes(\"nameindex\",\"{0:s}\") YIELD node AS n, score\n".format(str(single_unique_value))
@@ -581,19 +552,41 @@ def enumeration_concept_search(value_list,g):
     v = value_set[0]
     query += " CALL db.index.fulltext.queryNodes(\"nameindex\",\"{0:s}\") YIELD node AS n, score\n".format(str(v))
     query += " MATCH (n:Synonym) - [:IS_CALLED] - (con:Concept) - [:EQUALS] - (a:Answer) - [:PERMITS] - (c:CDE)\n"
-    query += " RETURN ID(c) AS cde_index, c.CDE_ID as cde_id, MAX(score) AS max_score \n"
-    for v in value_set[1:len(value_set)]:
+    query += " RETURN ID(c) AS cde_index, c.CDE_ID AS cde_id, MAX(score) AS max_score \n"
+    for v in value_set[1:len(value_list)]:
         query += " UNION ALL\n"
         query += " CALL db.index.fulltext.queryNodes(\"nameindex\",\"{0:s}\") YIELD node AS n, score\n".format(str(v))
         query += " MATCH (n:Synonym) - [:IS_CALLED] - (con:Concept) - [:EQUALS] - (a:Answer) - [:PERMITS] - (c:CDE)\n"
-        query += " RETURN ID(c) AS cde_index, c.CDE_ID as cde_id, MAX(score) AS max_score \n"
+        query += " RETURN ID(c) AS cde_index, c.CDE_ID AS cde_id, MAX(score) AS max_score \n"
     query += "}\n"
     query += "RETURN cde_index, cde_id, SUM(max_score) * 1.0 / {0:d}".format(len(value_set))
     result = query_graph(query,g)
     values = result.values()
-    if len(values) > 1:
-        values.sort(key = lambda z: z[2], reverse=True)
+    values.sort(key = lambda z: z[2], reverse=True)
     return values
+
+# def enumeration_ansindex_search(value_list,g):
+#     value_set = list(set(value_list))
+#     query = "CALL {\n"
+#     v = value_set[0]
+#     query += " CALL db.index.fulltext.queryNodes(\"ansindex\",\"{0:s}\") YIELD node AS n, score\n".format(str(v))
+#     query += " MATCH (n:AnswerText) - [:CAN_BE] - (a:Answer)\n"
+#     query += " WITH a,MAX(score) AS max_score\n"
+#     query += " MATCH (a) - [:PERMITS] - (c:CDE)\n"
+#     query += " RETURN ID(c) AS cde_index, c.CDE_ID AS cde_id, SUM(max_score) AS sum_max_score \n"
+#     for v in value_set[1:len(value_list)]:
+#         query += " UNION ALL\n"
+#         query += " CALL db.index.fulltext.queryNodes(\"ansindex\",\"{0:s}\") YIELD node AS n, score\n".format(str(v))
+#         query += " MATCH (n:AnswerText) - [:CAN_BE] - (a:Answer)\n"
+#         query += " WITH a,MAX(score) AS max_score\n"
+#         query += " MATCH (a) - [:PERMITS] - (c:CDE)\n"
+#         query += " RETURN ID(c) AS cde_index, c.CDE_ID AS cde_id, SUM(max_score) AS sum_max_score \n"
+#     query += "}\n"
+#     query += "RETURN cde_index, cde_id, SUM(sum_max_score) * 1.0 / {0:d}".format(len(value_set))
+#     result = query_graph(query,g)
+#     values = result.values()
+#     values.sort(key = lambda z: z[2], reverse=True)
+#     return values
 
 def enumeration_ansindex_search(value_list,g):
     value_set = list(set(value_list))
@@ -601,18 +594,17 @@ def enumeration_ansindex_search(value_list,g):
     v = value_set[0]
     query += " CALL db.index.fulltext.queryNodes(\"ansindex\",\"{0:s}\") YIELD node AS n, score\n".format(str(v))
     query += " MATCH (n:AnswerText) - [:CAN_BE] - (a:Answer) - [:PERMITS] - (c:CDE)\n"
-    query += " RETURN ID(c) AS cde_index, c.CDE_ID as cde_id, MAX(score) AS max_score \n"
+    query += " RETURN ID(c) AS cde_index, c.CDE_ID AS cde_id, MAX(score) AS max_score \n"
     for v in value_set[1:len(value_list)]:
         query += " UNION ALL\n"
         query += " CALL db.index.fulltext.queryNodes(\"ansindex\",\"{0:s}\") YIELD node AS n, score\n".format(str(v))
         query += " MATCH (n:AnswerText) - [:CAN_BE] - (a:Answer) - [:PERMITS] - (c:CDE)\n"
-        query += " RETURN ID(c) AS cde_index, c.CDE_ID as cde_id, MAX(score) AS max_score \n"
+        query += " RETURN ID(c) AS cde_index, c.CDE_ID AS cde_id, MAX(score) AS max_score \n"
     query += "}\n"
     query += "RETURN cde_index, cde_id, SUM(max_score) * 1.0 / {0:d}".format(len(value_set))
     result = query_graph(query,g)
     values = result.values()
-    if len(values) > 1:
-        values.sort(key = lambda z: z[2], reverse=True)
+    values.sort(key = lambda z: z[2], reverse=True)
     return values
 
 
@@ -689,15 +681,15 @@ def score_synonym_str(str1_full,str2_wordsonly,input_str):
     score = pct_coverage * (1-(space_count+1)/(len(input_str)))
     return score
 
-def create_new_search_strings(input_str,g,min_substr_length):
+def create_new_search_strings(input_str,g):
     word_list = find_synonyms(input_str,g)
-    word_list = [w for w in word_list if len(w) >= min_substr_length]
+    word_list = [w for w in word_list if len(w) >= FOLLOW_ON_SEARCH_MIN_WORD_LEN]
     exclusive_groups = find_exclusive_groups(input_str,word_list)
     strings = list(set([create_string(i,input_str,word_list) for i in exclusive_groups]))
     scores = [score_synonym_str(i[0],i[1],input_str) for i in strings]
     combined_list = [[strings[i],scores[i]] for i in range(len(strings))]
     combined_list.sort(key=lambda z: z[1], reverse=True)
-    return [(i[0][0],i[1]) for i in combined_list[0:3] if i[1] > 0]
+    return [(i[0][0],i[1]) for i in combined_list[0:3]]
 
 
 def get_enum_answers(cde_index,g):
@@ -716,10 +708,7 @@ def is_enum(col_series):
         return False
 
 def nans_vs_nexp(n_ans,n_exp):
-    if n_exp == 0:
-        return 0
-    else:
-        return 1-(np.abs(n_ans-n_exp)/(n_ans + n_exp))
+    return 1-(np.abs(n_ans-n_exp)/(n_ans + n_exp))
 
 def create_answer_count_df(cde_indices,g):
     q = "MATCH (n:CDE) - [:PERMITS] - (m:Answer) WHERE ID(n) IN [{0:s}] RETURN ID(n),COUNT(*)".format(",".join(cde_indices.astype('int').astype('str')))
@@ -737,137 +726,114 @@ def create_answer_count_df(cde_indices,g):
 
 
 def build_X(col_series,annotated_result,g):
+    t = time.time()
     col_name = col_series.name
-    search_string = clean_string_for_fulltext(
-        lower_upper_split(
-            period_replace(
-                underscore_replace(
-                    col_name
-                )
+    search_string = lower_upper_split(
+        period_replace(
+            underscore_replace(
+                col_name
             )
         )
     )
     df = pd.DataFrame(columns = [i for i in X_FT_STRUCTURE])
     result_types = list(set([j for i in X_FT_STRUCTURE for j in X_FT_STRUCTURE[i]['ft_postprocess_params']]))
     result_type_dict = {i:[j for j in X_FT_STRUCTURE if i in X_FT_STRUCTURE[j]['ft_postprocess_params']] for i in result_types}
-    search_results = nameindex_query_multiple([search_string],g)
-    # print("Search Results Complete: {0:d} sec".format(int(time.time() - t)))
-    # print("{0:d} results.\n".format(len(search_results)))
+    search_results = nameindex_query(search_string,g)
+    print("Search Results Complete: {0:d} sec".format(int(time.time() - t)))
+    print("{0:d} results.\n".format(len(search_results)))
+    data_adds = list(set([i[0] for i in search_results if i[1] > FT_SEARCH_CUTOFF]))
+    search_results_add = [i for i in search_results if i[0] in data_adds]
     if (len(search_results) < NAMEINDEX_SEARCH_REQD) or (len([i for i in search_results if i[2][0] in ['CDE','CDE_Name','DEC','QuestionText']]) < NAMEINDEX_CDE_REQD):
-        min_substr_length = max(1/2 * np.sqrt(len(search_string)),FOLLOW_ON_SEARCH_MIN_WORD_LEN)
-        new_search_strings = [(search_string,1)] + create_new_search_strings(search_string,g,min_substr_length)
-        search_results = nameindex_query_multiple([clean_string_for_fulltext(s[0]) for s in new_search_strings],g,[s[1] for s in new_search_strings])
-    for sr in search_results:
+        new_search_strings = create_new_search_strings(search_string,g)
+        for s in new_search_strings:
+            search_results = nameindex_query(s[0],g)
+            search_array = np.array(search_results)
+            search_array[:,1] = s[1] * search_array[:,1]
+            search_results = search_array.tolist()
+            new_data_adds = list(set([i[0] for i in search_results if (i[1] > FT_SEARCH_CUTOFF) and (i[0] not in data_adds)]))
+            data_adds += new_data_adds
+            search_results_add += [i for i in search_results if i[0] in new_data_adds]
+    for sr in search_results_add:
         update_columns = result_type_dict[sr[2][0]]
         for uc in update_columns:
             df = create_or_update(df,sr,uc,g)
-    # print("Initial DF built: {0:d} sec".format(int(time.time() - t)))
-    # print("DF size: {0:d}.\n".format(df.shape[0]))
+    print("Initial DF built: {0:d} sec".format(int(time.time() - t)))
+    print("DF size: {0:d}.\n".format(df.shape[0]))
     no_nan = col_series.loc[col_series==col_series]
     unique_values = no_nan.unique().tolist()
-    if len(unique_values) > 0:
-        unique_values_clean = [clean_string_for_fulltext(i) for i in unique_values]
-        enum_search1 = enumeration_concept_search(unique_values_clean,g)
-        # print("Enum_search1 complete: {0:d} sec".format(int(time.time() - t)))
-        # print("Enum_search1 results: {0:d}.\n".format(len(enum_search1)))
-        enum_search1_df = pd.DataFrame([es for es in enum_search1 if es[2] > FT_SEARCH_CUTOFF],columns = ['index','cde_id','enum_concept_search'])
-        # print("Enum_search1 DF Created: {0:d} sec".format(int(time.time() - t)))
-        # print("Enum_search1 DF size: {0:d}.\n".format(enum_search1_df.shape[0]))
-        enum_search2 = enumeration_ansindex_search(unique_values_clean,g)
-        # print("Enum_search2 complete: {0:d} sec".format(int(time.time() - t)))
-        # print("Enum_search2 results: {0:d}.\n".format(len(enum_search2)))
-        enum_search2_df = pd.DataFrame([es for es in enum_search2 if es[2] > FT_SEARCH_CUTOFF],columns = ['index','cde_id','enum_answer_search'])
-        # print("Enum_search2 DF Created: {0:d} sec".format(int(time.time() - t)))
-        # print("Enum_search2 DF size: {0:d}.\n".format(enum_search2_df.shape[0]))
-        df = pd.merge(
-            df,
-            enum_search1_df,
-            on = ['index','cde_id'],
-            how = 'outer'
+    enum_results = enumeration_exact_search(unique_values,g)
+    enum_score_df = pd.DataFrame([[i[0],max([1,i[2]])] for i in enum_results],columns=['index','enum_search_score'])
+    print("Exact Enum Results Complete: {0:d} sec".format(int(time.time() - t)))
+    print("Enum DF size: {0:d}.\n".format(enum_score_df.shape[0]))
+    df = pd.merge(df,enum_score_df,on='index',how='outer')
+    df = df[[i for i in X_FT_STRUCTURE] + ['enum_search_score']]
+    print("Exact Enum Results Complete: {0:d} sec".format(int(time.time() - t)))
+    print("DF size: {0:d}.\n".format(df.shape[0]))
+    cde_indices = df['index'].values
+    answer_count_df = create_answer_count_df(cde_indices,g)
+    answer_count_df = pd.merge(df['index'],answer_count_df, on='index',how='outer')
+    print("Answer Count DF Created: {0:d} sec".format(int(time.time() - t)))
+    print("Answer Count DF size: {0:d}.\n".format(answer_count_df.shape[0]))
+    n_ans = len(unique_values)
+    n_lines = len(no_nan)
+    answer_count_df['answer_count'].loc[answer_count_df['answer_count'] != answer_count_df['answer_count']] = n_lines
+    if answer_count_df.shape[0] > 0:
+        enum_score2_df = pd.DataFrame(
+            {
+                'index': answer_count_df['index'],
+                'enum_count_score': answer_count_df.apply(lambda x: nans_vs_nexp(n_ans,x[1]), axis=1)
+            }
         )
-        df = pd.merge(
-            df,
-            enum_search2_df,
-            on = ['index','cde_id'],
-            how = 'outer'
-        )
-        # print("DF updated: {0:d} sec".format(int(time.time() - t)))
-        # print("DF size: {0:d}.\n".format(df.shape[0]))
     else:
-        df['enum_concept_search'] = 0
-        df['enum_answer_search'] = 0
-    if df.shape[0] > 0:
-        answer_count_df = create_answer_count_df(df['index'].values,g)
-        answer_count_df = pd.merge(df['index'],answer_count_df, on='index',how='outer')
-        # print("Answer Count DF Created: {0:d} sec".format(int(time.time() - t)))
-        # print("Answer Count DF size: {0:d}.\n".format(answer_count_df.shape[0]))
-        n_ans = len(unique_values)
-        n_lines = len(no_nan)
-        answer_count_df.loc[answer_count_df['answer_count'] != answer_count_df['answer_count'],'answer_count'] = n_lines
-        if answer_count_df.shape[0] > 0:
-            answer_count_df = pd.DataFrame(
-                {
-                    'index': answer_count_df['index'],
-                    'answer_count_score': answer_count_df.apply(lambda z: nans_vs_nexp(n_ans,z[1]), axis=1)
-                }
-            )
-        else:
-            answer_count_df = pd.DataFrame(
-                {
-                    'index': [],
-                    'answer_count_score': []
-                }
-            )
-        # print("Answer Score DF Created: {0:d} sec".format(int(time.time() - t)))
-        # print("Answer Score DF size: {0:d}.\n".format(answer_count_df.shape[0]))
-        df = pd.merge(df,answer_count_df,on='index',how='inner')
-        for c in df.columns:
-            v = df[c] != df[c]
-            if any(v):
-                df.loc[v,c] = 0
-        # print("DF updated: {0:d} sec".format(int(time.time() - t)))
-        # print("DF size: {0:d}.\n".format(df.shape[0]))
-        if n_ans > 0:
-            query = "MATCH (n:CDE) WHERE ID(n) IN [{0:s}] RETURN DISTINCT ID(n), n.DATATYPE, n.DISPLAY_FORMAT, n.VALUE_DOMAIN_TYPE".format(",".join([str(i) for i in df['index'].values]))
-            result = query_graph(query,g)
-            values = result.values()
-            temp_df = pd.DataFrame(values,columns = ['index','datatype','display_format','value_domain_type'])
-            enum_ids = list(temp_df['index'].loc[temp_df['value_domain_type']=='Enumerated'].values)
-            enum_scores = score_enum_values(unique_values_clean,enum_ids,g)
-            enum_score_df = pd.DataFrame(enum_scores,columns = ['index','value_score'])
-            temp_df = pd.merge(temp_df,enum_score_df,on='index',how='left')
-            for display_format in DISPLAY_FORMATS:
-                temp_df.loc[(temp_df['value_domain_type']=='NonEnumerated') & (temp_df['display_format'] == display_format),'value_score'] = len([j for j in unique_values if check_display_format(str(j),display_format)])/len(unique_values)
-            for datatype in DATATYPES:
-                temp_df.loc[(temp_df['value_domain_type']=='NonEnumerated') & (temp_df['display_format'].isnull()) & (temp_df['datatype'] == datatype),'value_score'] = len([j for j in unique_values if check_datatype(str(j),datatype)])/len(unique_values)
-            # print("Value score DF Created: {0:d} sec".format(int(time.time() - t)))
-            # print("Value score DF size: {0:d}.\n".format(temp_df.shape[0]))
-            df = pd.merge(
-                df,
-                temp_df[['index','value_score']],
-                on = 'index',
-                how = 'inner'
-            )
-        else:
-            df['value_score'] = 0
-        # print("DF updated: {0:d} sec".format(int(time.time() - t)))
-        # print("DF size: {0:d}.\n".format(df.shape[0]))
-        annotated_cde = score_functions.get_de_id(annotated_result)
-        if annotated_cde is not None:
-            annotated_cde = int(annotated_cde)
-        df['metric1'] = [score_functions.WEIGHTS['de_wt'] if i == annotated_cde else 0 for i in df['cde_id'].values]
-        metric2_df = pd.DataFrame(
-            score_functions.score_multiple_concept_overlap(annotated_cde,df['index'].values,g)
+        enum_score2_df = pd.DataFrame(
+            {
+                'index': [],
+                'enum_count_score': []
+            }
         )
-        # print("Metric2 DF created: {0:d} sec".format(int(time.time() - t)))
-        # print("Metric2 DF size: {0:d}.\n".format(metric2_df.shape[0]))
-        df = pd.merge(df,metric2_df,on='index',how='outer')
-        df.loc[df['metric2'] != df['metric2'],'metric2'] = 0
-        df['index'] = df['index'].astype('int')
-        # print("DF updated: {0:d} sec".format(int(time.time() - t)))
-        # print("DF size: {0:d}.\n".format(df.shape[0]))
-    # else:
-        # print("Empty df!")        
+    print("Enum Score2 DF Created: {0:d} sec".format(int(time.time() - t)))
+    print("Enum Score2 DF size: {0:d}.\n".format(enum_score2_df.shape[0]))
+    df = pd.merge(df,enum_score2_df,on='index',how='inner')
+    for c in df.columns:
+        v = df[c] != df[c]
+        if any(v):
+            df.loc[v,c] = 0
+    print("DF updated: {0:d} sec".format(int(time.time() - t)))
+    print("DF size: {0:d}.\n".format(df.shape[0]))
+    value_domains = {i:classify_values(unique_values,i,g) for i in df['index']}
+    value_domain_est = pd.DataFrame(
+        {
+            'index': df['index'],
+            'value_domain_est': df.apply(
+                lambda x: score_value_match(
+                    value_domains[x[0]][0],
+                    x[0],
+                    g
+                ),
+                axis = 1
+            )
+        }
+    )
+    print("Value domain est DF Created: {0:d} sec".format(int(time.time() - t)))
+    print("Enum Score2 DF size: {0:d}.\n".format(value_domain_est.shape[0]))
+    df = pd.merge(df,value_domain_est,on='index',how='inner')
+    print("DF updated: {0:d} sec".format(int(time.time() - t)))
+    print("DF size: {0:d}.\n".format(df.shape[0]))
+    annotated_cde = int(score_functions.get_de_id(annotated_result))
+    metrics = pd.DataFrame(
+        {
+            'index': df['index'],
+            'metric1': [score_functions.WEIGHTS['de_wt'] * score_functions.score_cde(annotated_cde,value_domains[i][1]) for i in df['index']],
+            'metric2': [score_functions.WEIGHTS['dec_wt'] *score_functions.score_concept_overlap(annotated_cde,value_domains[i][1],g) for i in df['index']],
+            'metric3': [score_functions.WEIGHTS['vd_wt'] *score_functions.score_value_domain(value_domains[i][0],annotated_result,g) for i in df['index']]
+        }
+    )
+    print("Metric DF created: {0:d} sec".format(int(time.time() - t)))
+    print("Metric DF size: {0:d}.\n".format(metrics.shape[0]))
+    df = pd.merge(df,metrics,on='index',how='inner')
+    df['index'] = df['index'].astype('int')
+    print("DF updated: {0:d} sec".format(int(time.time() - t)))
+    print("DF size: {0:d}.\n".format(df.shape[0]))
     return df
 
 def classify_values(col_values,cde_index,g):
@@ -890,7 +856,7 @@ def classify_values(col_values,cde_index,g):
             output_list.append(classification_dict)
     return (output_list,value_domain_attributes[3])
 
-def classify_single_enum_value(col_value,cde_index,g):
+def classify_enum_value(col_value,cde_index,g):
     output_dict = {'observedValue':str(col_value),'permissibleValue':{}}
     query = "CALL db.index.fulltext.queryNodes(\"ansindex\",\"{0:s}\") YIELD node as a, score ".format(str(col_value))
     query += "MATCH (n:CDE) - [:PERMITS] - (ans:Answer) - [:CAN_BE] - (a:AnswerText) WHERE ID(n) = {0:d} ".format(cde_index)
@@ -929,31 +895,6 @@ def classify_single_enum_value(col_value,cde_index,g):
         output_dict['permissibleValue']['value'] = 'NOMATCH'
         output_dict['permissibleValue']['conceptCode'] = None
     return output_dict
-
-def score_enum_values(unique_values,cde_indices,g):
-    query = "CALL {\n"
-    query += " MATCH (c:CDE) WHERE ID(c) IN [{0:s}] \n".format(",".join([str(i) for i in cde_indices]))
-    query += " RETURN ID(c) as cde_index, 0 AS g_max \n"
-    for u in unique_values:
-        query += " UNION ALL "
-        query += " CALL {\n"
-        query += " CALL db.index.fulltext.queryNodes(\"ansindex\",\"{0:s}\") YIELD node as a, score ".format(str(u))
-        query += " MATCH (a:AnswerText) - [:CAN_BE] - (ans:Answer) - [:PERMITS] - (c:CDE)\n "
-        # query += " WHERE ID(c) IN [{0:s}] \n".format(",".join([str(i) for i in cde_indices]))
-        query += " RETURN ID(c) as cde_index, CASE MAX(score) > {0:1.2f} WHEN TRUE THEN 1 ELSE 0 END as g".format(float(FT_SEARCH_CUTOFF))
-        query += " UNION ALL \n"
-        query += " CALL db.index.fulltext.queryNodes(\"nameindex\",\"{0:s}\") YIELD node as s, score ".format(str(u))
-        query += " MATCH (s:Synonym) - [:IS_CALLED] - (con:Concept) - [:EQUALS] - (ans:Answer) - [:PERMITS] - (c:CDE)\n "
-        # query += " WHERE ID(c) IN [{0:s}] \n".format(",".join([str(i) for i in cde_indices]))
-        query += " RETURN ID(c) as cde_index, CASE MAX(score) > {0:1.2f} WHEN TRUE THEN 1 ELSE 0 END as g".format(float(FT_SEARCH_CUTOFF))
-        query += " }\n"
-        query += " RETURN cde_index, MAX(g) AS g_max \n"
-    query += "}\n"
-    query += "RETURN cde_index,SUM(g_max) * 1.0 / {0:d}".format(len(unique_values))
-    result = query_graph(query,g)
-    values = result.values()
-    values.sort(key=lambda z: z[1], reverse=True)
-    return values
 
 
 def classify_display_value(col_value,display_format):

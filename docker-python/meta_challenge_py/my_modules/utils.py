@@ -17,8 +17,23 @@ def neo4j_connect(
     )
     return graphDB
 
+def clean_field(whatever,to_lower=False):
+    if is_not_nan(whatever):
+        if isinstance(whatever,str):
+            s = whatever.replace("\\","\\\\")
+            o = s.replace("'","\\'")
+            if to_lower:
+                return o.lower()
+            else:
+                return o
+        else:
+            return whatever
+    else:
+        return None
+
 def lower_upper_split(input_str):
     o = re.sub(r"([a-z])([A-Z])",r"\1 \2",input_str)
+    o = re.sub(r"([0-9])([A-Z,a-z])",r"\1 \2",o)
     return o
 
 def underscore_replace(input_str):

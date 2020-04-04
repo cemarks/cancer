@@ -10,3 +10,5 @@ docker-python/neo4j-community-4.0.0/
 mount_folder/*
 mount_folder/
 *.db
+*.img.tar
+*.pkl

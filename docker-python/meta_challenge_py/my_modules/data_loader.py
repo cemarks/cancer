@@ -29,8 +29,8 @@ def list_data_files(DATA_DIR = '/input'):
 
 def get_all_synonyms(graphDB):
     with graphDB.session() as q:
-        string_tuples = q.run("MATCH (n:Synonym) RETURN n.name,n.lower")
+        string_tuples = q.run("MATCH (n:Synonym) RETURN n.name,n.name_lower")
     v = string_tuples.values()
     string_series = pd.DataFrame(data=v)
-    string_series.columns = ['name','lower']
+    string_series.columns = ['name','name_lower']
     return string_series

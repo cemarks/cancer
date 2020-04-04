@@ -14,21 +14,6 @@ def is_not_nan(whatever):
     else:
         return False
 
-def clean_field(whatever,to_lower=False):
-    if is_not_nan(whatever):
-        if isinstance(whatever,str):
-            s = whatever.replace("\\","\\\\")
-            o = s.replace("'","\\'")
-            if to_lower:
-                return o.lower()
-            else:
-                return o
-        else:
-            return whatever
-    else:
-        return None
-
-
 def add_concept_from_df(row_iloc,df):
     row = df.iloc[row_iloc]
     concept_node_str = create_concept_str_from_row(row,"n")
@@ -244,6 +229,8 @@ def answer_parser(ans_str):
     if clean_field(ans_str) is not None:
         first_split = str(clean_field(ans_str)).split("|")
         second_split = [i.split("\\") for i in first_split]
+        second_split = [list(set(i)) for i in second_split]
+        second_split = [[j for j in i if j != ''] for i in second_split]
         return second_split
     else:
         return None
@@ -336,7 +323,7 @@ def add_cde_from_df(row_iloc,df,g):
         cde_short_names = pipe_parser(row['CDE_SHORT_NAME'])
         for i in range(len(cde_short_names)):
             query += "MERGE (cdename" + str(i) +":CDE_Name {name: '" + str(cde_short_names[i]) + "', name_lower: '" + str(cde_short_names[i]).lower() + "'})\n"
-            query += "CREATE (n) - [:ISSHORT] -> (cdename" + str(i) +")\n"
+            query += "CREATE (n) - [:IS_SHORT] -> (cdename" + str(i) +")\n"
     if is_not_nan(row['QUESTION_TEXT']):
         question_text = pipe_parser(row['QUESTION_TEXT'])
         for i in range(len(question_text)):
@@ -379,13 +366,13 @@ def add_cde_from_df(row_iloc,df,g):
                         if len(ncit_list) > 1:
                             code = ncit_list[1]
                             query += "MERGE (concept_" + "_".join([str(i),str(j),str(k)]) + ":Concept {CODE: '" + code + "'})\n"
-                            query += "CREATE (ans" + str(i) + ") - [eq" + str(i) +":EQUALS { cde_id: n.CDE_ID }] -> (concept_" + "_".join([str(i),str(j),str(k)]) + ")\n"
+                            query += "MERGE (ans" + str(i) + ") - [:EQUALS] -> (concept_" + "_".join([str(i),str(j),str(k)]) + ")\n"
                 else:
                     answer_text_node = "MERGE " + create_answer_text_str(ans_list[i][j],"anstxt" + str(i) + "_" + str(j)) + "\n"
-                    can_be = "MERGE (ans" + str(i) + ") - [:CANBE] -> (anstxt" + str(i) + "_" + str(j) + ")\n" 
+                    can_be = "MERGE (ans" + str(i) + ") - [:CAN_BE] -> (anstxt" + str(i) + "_" + str(j) + ")\n" 
                     query += answer_text_node + can_be
-        with g.session() as q:
-            z = q.run(query)
+            with g.session() as q:
+                z = q.run(query)
     return True
 
 def delete_everything(g):

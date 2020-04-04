@@ -8,6 +8,7 @@ RUN pip install numpy
 RUN pip install scipy
 RUN pip install scikit-learn
 RUN pip install pandas
+RUN pip install stringdist
 
 RUN mkdir /input
 RUN mkdir /output
