@@ -71,7 +71,8 @@ logreg = logistic_regression(
     class_weight = {
         0:0.01,
         1:0.99
-    }
+    },
+    C = 0.1
 )
 logreg.fit(X_poly,X['metric3'])
 s = logreg.score(X_poly,X['metric4'])
