@@ -40,3 +40,26 @@ with open("/home/cemarks/Projects/cancer/sandbox/ml_dataframe.pkl","wb") as f_sa
     pickle.dump(X,f_save)
 
 
+
+# z = []
+# for i in range(len(tsvs)):
+#     f_tsv = "".join(tsvs[i])
+#     data_sheet = data_loader.read_file(f_tsv,INPUT_DIR)
+#     a_json_index = file_splits.index(("Annotated-{0:s}".format(tsvs[i][0]),".json"))
+#     f_annotated = "".join(file_splits[a_json_index])
+#     annotated = score_functions.read_annotation(os.path.join(INPUT_DIR,f_annotated))
+#     for j in range(len(data_sheet.columns)):
+#         inds = (X['DB'] == tsvs[i][0]) & (X['col_no'] == j + 1)
+#         m = max(X['metric2'].loc[inds].tolist() + [0])
+#         annotated_result = score_functions.get_col_result_annotation(annotated,j+1)
+#         cde_id = annotated_result['dataElement']['id']
+#         n = sum(inds)
+#         z.append((m,n,cde_id,i,j))
+
+
+
+
+
+
+
+
