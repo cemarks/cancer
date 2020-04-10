@@ -1,36 +1,28 @@
 #!/usr/bin/python3
-import sys,os
-import numpy as np
-import pandas as pd
-from neo4j import GraphDatabase
-from my_modules.data_loader import read_file
-from my_modules.utils import *
+
+import sys
+from my_modules utils,data_loader
 
 
 
-def is_not_nan(whatever):
-    if whatever == whatever:
-        return True
-    else:
-        return False
 
 def add_concept_from_df(row_iloc,df):
     row = df.iloc[row_iloc]
     concept_node_str = create_concept_str_from_row(row,"n")
     query = "MERGE " + concept_node_str + "\n"
-    if is_not_nan(row['SYNONYMS']):
+    if utils.is_not_nan(row['SYNONYMS']):
         synonyms = (row['SYNONYMS']).split("|")
         synonym_nodes = ["MERGE " + create_synonym_str(synonyms[i],"syn"+str(i)) for i in range(len(synonyms))]
         is_calleds = ["CREATE (n) - [:IS_CALLED] -> (syn" + str(i) + ")" for i in range(len(synonyms))]
         query += "\n".join(synonym_nodes) + "\n"
         query += "\n".join(is_calleds) + "\n"
-    if is_not_nan(row['SEMANTIC_TYPE']):
+    if utils.is_not_nan(row['SEMANTIC_TYPE']):
         sts = (row['SEMANTIC_TYPE']).split("|")
         st_nodes = ["MERGE " + create_semantictype_str(sts[i],"st"+str(i)) for i in range(len(sts))]
         is_types = ["CREATE (n) - [:IS_TYPE] -> (st" + str(i) + ")" for i in range(len(sts))]
         query += "\n".join(st_nodes) + "\n"
         query += "\n".join(is_types) + "\n"
-    if is_not_nan(row['PARENTS']):
+    if utils.is_not_nan(row['PARENTS']):
         parents = (row['PARENTS']).split("|")
         for i in range(len(parents)):
             p = parents[i]
@@ -45,8 +37,8 @@ def add_concept_from_df(row_iloc,df):
 def create_concept_str_from_row(row,name=None):
     row_index = int(row.name)
     code = row['CODE']
-    concept_name = clean_field(row['CONCEPT_NAME'])
-    definition = clean_field(row['DEFINITION'])
+    concept_name = utils.clean_field(row['CONCEPT_NAME'])
+    definition = utils.clean_field(row['DEFINITION'])
     l = [
         f"CODE: '{code}'",
         f"CONCEPT_NAME: '{concept_name}'",
@@ -61,7 +53,7 @@ def create_concept_str_from_row(row,name=None):
 
 
 def create_synonym_str(syn_str,name=None):
-    s = clean_field(syn_str)
+    s = utils.clean_field(syn_str)
     s_lower = s.lower()
     if name is None:
         n = f"(:Synonym {{name: '{s}', name_lower: '{s_lower}'}})"
@@ -70,7 +62,7 @@ def create_synonym_str(syn_str,name=None):
     return n
 
 def create_semantictype_str(st_str,name=None):
-    s = clean_field(st_str)
+    s = utils.clean_field(st_str)
     if name is None:
         n = f"(:SemanticType {{name: '{s}'}})"
     else:
@@ -78,7 +70,7 @@ def create_semantictype_str(st_str,name=None):
     return n
 
 def create_questiontext_str(qt_str,name=None):
-    s = clean_field(qt_str)
+    s = utils.clean_field(qt_str)
     if name is None:
         n = f"(:QuestionText {{name: '{s}'}})"
     else:
@@ -100,77 +92,77 @@ def create_cde_str_from_row(row,name=None):
         },
         "cde_long_name": {
             "name": "CDE_LONG_NAME",
-            "value": clean_field(row['CDE_LONG_NAME']),
+            "value": utils.clean_field(row['CDE_LONG_NAME']),
             "type": "text"
         },
         "cde_long_name_lower": {
             "name": "CDE_LONG_NAME_LOWER",
-            "value": clean_field(row['CDE_LONG_NAME'],to_lower=True),
+            "value": utils.clean_field(row['CDE_LONG_NAME'],to_lower=True),
             "type": "text"
         },
         "cde_short_name": {
             "name": "name",
-            "value": clean_field(row['CDE_SHORT_NAME']),
+            "value": utils.clean_field(row['CDE_SHORT_NAME']),
             "type": "text"
         },
         "cde_short_name_lower":{
             "name": "name_lower",
-            "value": clean_field(row['CDE_SHORT_NAME'],to_lower=True),
+            "value": utils.clean_field(row['CDE_SHORT_NAME'],to_lower=True),
             "type": "text"
         },
         "definition": {
             "name": "DEFINITION",
-            "value": clean_field(row['DEFINITION']),
+            "value": utils.clean_field(row['DEFINITION']),
             "type": "text"
         },
         "context_name": {
             "name": "CONTEXT_NAME",
-            "value": clean_field(row['CONTEXT_NAME']),
+            "value": utils.clean_field(row['CONTEXT_NAME']),
             "type": "text"
         },
         "workflow_status": {
             "name": "WORKFLOW_STATUS",
-            "value": clean_field(row['WORKFLOW_STATUS']),
+            "value": utils.clean_field(row['WORKFLOW_STATUS']),
             "type": "text"
         },
         "registration_status": {
             "name": "REGISTRATION_STATUS",
-            "value": clean_field(row['REGISTRATION_STATUS']),
+            "value": utils.clean_field(row['REGISTRATION_STATUS']),
             "type": "text"
         },
         "value_domain_type": {
             "name": "VALUE_DOMAIN_TYPE",
-            "value": clean_field(row['VALUE_DOMAIN_TYPE']),
+            "value": utils.clean_field(row['VALUE_DOMAIN_TYPE']),
             "type": "text"
         },
         "datatype": {
             "name": "DATATYPE",
-            "value": clean_field(row['DATATYPE']),
+            "value": utils.clean_field(row['DATATYPE']),
             "type": "text"
         },
         "unit_of_measure": {
             "name": "UNIT_OF_MEASURE",
-            "value": clean_field(row['UNIT_OF_MEASURE']),
+            "value": utils.clean_field(row['UNIT_OF_MEASURE']),
             "type": "text"
         },
         "display_format": {
             "name": "DISPLAY_FORMAT",
-            "value": clean_field(row['DISPLAY_FORMAT']),
+            "value": utils.clean_field(row['DISPLAY_FORMAT']),
             "type": "text"
         },
         "max_value": {
             "name": "MAX_VALUE",
-            "value": clean_field(row['MAX_VALUE']),
+            "value": utils.clean_field(row['MAX_VALUE']),
             "type": "num"
         },
         "min_value": {
             "name": "MIN_VALUE",
-            "value": clean_field(row['MIN_VALUE']),
+            "value": utils.clean_field(row['MIN_VALUE']),
             "type": "num"
         },
         "decimal_place": {
             "name": "DECIMAL_PLACE",
-            "value": clean_field(row['DECIMAL_PLACE']),
+            "value": utils.clean_field(row['DECIMAL_PLACE']),
             "type": "num"
         }
     }
@@ -211,23 +203,23 @@ def create_cde_str_from_row(row,name=None):
 
 
 def concept_parser(concept_str):
-    if clean_field(concept_str) is not None:
-        first_split = str(clean_field(concept_str)).split("|")
+    if utils.clean_field(concept_str) is not None:
+        first_split = str(utils.clean_field(concept_str)).split("|")
         second_split = [i.split(":") for i in first_split]
         return second_split
     else:
         return None
 
 def pipe_parser(pipe_str):
-    if clean_field(pipe_str) is not None:
-        first_split = str(clean_field(pipe_str)).split("|")
+    if utils.clean_field(pipe_str) is not None:
+        first_split = str(utils.clean_field(pipe_str)).split("|")
         return first_split
     else:
         return None
 
 def answer_parser(ans_str):
-    if clean_field(ans_str) is not None:
-        first_split = str(clean_field(ans_str)).split("|")
+    if utils.clean_field(ans_str) is not None:
+        first_split = str(utils.clean_field(ans_str)).split("|")
         second_split = [i.split("\\") for i in first_split]
         second_split = [list(set(i)) for i in second_split]
         second_split = [[j for j in i if j != ''] for i in second_split]
@@ -236,8 +228,8 @@ def answer_parser(ans_str):
         return None
 
 def classifications_parser(class_str):
-    if clean_field(class_str) is not None:
-        first_split = str(clean_field(class_str)).split("|")
+    if utils.clean_field(class_str) is not None:
+        first_split = str(utils.clean_field(class_str)).split("|")
         second_split = [i.split("\\") for i in first_split]
         third_split = [i[0].split(" - ") for i in second_split]
         o = [[third_split[i][0],third_split[i][1],second_split[i][1]] for i in range(len(third_split))]
@@ -247,24 +239,24 @@ def classifications_parser(class_str):
 
 def create_classification_str_from_list(class_list,name=None):
     if name is None:
-        o = "(:Classification {TYPE: '" + clean_field(class_list[0]) + "', "
-        o += "VALUE: '" + clean_field(class_list[1]) + "', "
-        o += "CONTEXT: '" + clean_field(class_list[2]) + "'})"
+        o = "(:Classification {TYPE: '" + utils.clean_field(class_list[0]) + "', "
+        o += "VALUE: '" + utils.clean_field(class_list[1]) + "', "
+        o += "CONTEXT: '" + utils.clean_field(class_list[2]) + "'})"
     else:
-        o = "(" + name + ":Classification {TYPE: '" + clean_field(class_list[0]) + "', "
-        o += "VALUE: '" + clean_field(class_list[1]) + "', "
-        o += "CONTEXT: '" + clean_field(class_list[2]) + "'})"
+        o = "(" + name + ":Classification {TYPE: '" + utils.clean_field(class_list[0]) + "', "
+        o += "VALUE: '" + utils.clean_field(class_list[1]) + "', "
+        o += "CONTEXT: '" + utils.clean_field(class_list[2]) + "'})"
     return o
 
 def create_answer_str_from_list(ans_list,name=None):
     if name is None:
-        o = "(:Answer {name: '" + clean_field("|".join(ans_list)) + "'})"
+        o = "(:Answer {name: '" + utils.clean_field("|".join(ans_list)) + "'})"
     else:
-        o = "(" + name + ":Answer {name: '" + clean_field("|".join(ans_list)) + "'})"
+        o = "(" + name + ":Answer {name: '" + utils.clean_field("|".join(ans_list)) + "'})"
     return o
 
 def create_answer_text_str(ans_text,name=None):
-    clean_txt = clean_field(ans_text)
+    clean_txt = utils.clean_field(ans_text)
     if name is None:
         o = "(:AnswerText {name: '" + clean_txt + "', name_lower: '" + clean_txt.lower() + "'})"
     else:
@@ -273,21 +265,21 @@ def create_answer_text_str(ans_text,name=None):
 
 
 def create_dec_str_from_row(row,name=None):
-    if clean_field(row['DEC_ID']) is not None:
+    if utils.clean_field(row['DEC_ID']) is not None:
         d = {
             "dec_id": {
                 "name": "DEC_ID",
-                "value": clean_field(row['DEC_ID']),
+                "value": utils.clean_field(row['DEC_ID']),
                 "type": "num"
             },
             "dec_long_name": {
                 "name": "name",
-                "value": clean_field(row['DEC_LONG_NAME']),
+                "value": utils.clean_field(row['DEC_LONG_NAME']),
                 "type": "text"
             },
             "dec_long_lower": {
                 "name": "name_lower",
-                "value": clean_field(row['DEC_LONG_NAME'],to_lower=True),
+                "value": utils.clean_field(row['DEC_LONG_NAME'],to_lower=True),
                 "type": "text"
             }
         }
@@ -319,31 +311,31 @@ def add_cde_from_df(row_iloc,df,g):
     row = df.iloc[row_iloc]
     cde_node_str = create_cde_str_from_row(row,"n")
     query = "MERGE " + cde_node_str + "\n"
-    if is_not_nan(row['CDE_SHORT_NAME']):
+    if utils.is_not_nan(row['CDE_SHORT_NAME']):
         cde_short_names = pipe_parser(row['CDE_SHORT_NAME'])
         for i in range(len(cde_short_names)):
             query += "MERGE (cdename" + str(i) +":CDE_Name {name: '" + str(cde_short_names[i]) + "', name_lower: '" + str(cde_short_names[i]).lower() + "'})\n"
             query += "CREATE (n) - [:IS_SHORT] -> (cdename" + str(i) +")\n"
-    if is_not_nan(row['QUESTION_TEXT']):
+    if utils.is_not_nan(row['QUESTION_TEXT']):
         question_text = pipe_parser(row['QUESTION_TEXT'])
         for i in range(len(question_text)):
             query += "MERGE (qt" + str(i) +":QuestionText {name: '" + str(question_text[i]) + "'})\n"
             query += "CREATE (n) - [:QUESTION] -> (qt" + str(i) +")\n"
-    if is_not_nan(row['DEC_ID']):
+    if utils.is_not_nan(row['DEC_ID']):
         dec_node_str = create_dec_str_from_row(row,'dec')
         query += "MERGE " + dec_node_str + "\n"
         query += "CREATE (n) - [:IS_CAT] -> (dec) \n"
-        if is_not_nan(row['OBJECT_CLASS_CONCEPTS']):
+        if utils.is_not_nan(row['OBJECT_CLASS_CONCEPTS']):
             concepts = concept_parser(row['OBJECT_CLASS_CONCEPTS'])
             for i in range(len(concepts)):
                 query += "MERGE (obclass" + str(i) +":Concept {CODE: '" + str(concepts[i][1]) + "'}) ON CREATE SET obclass" + str(i) + ".nonstandardtype = '" + str(concepts[i][0]) + "'\n"
                 query += "CREATE (dec) - [:IS_OBJ] -> (obclass" + str(i) +")\n"
-    if is_not_nan(row['PROPERTY_CONCEPTS']):
+    if utils.is_not_nan(row['PROPERTY_CONCEPTS']):
             concepts = concept_parser(row['PROPERTY_CONCEPTS'])
             for i in range(len(concepts)):
                 query += "MERGE (prop" + str(i) +":Concept {CODE: '" + str(concepts[i][1]) + "'}) ON CREATE SET prop" + str(i) + ".nonstandardtype = '" + str(concepts[i][0]) + "'\n"
                 query += "CREATE (dec) - [:IS_PROP] -> (prop" + str(i) +")\n"
-    if is_not_nan(row['CLASSIFICATIONS']):
+    if utils.is_not_nan(row['CLASSIFICATIONS']):
         classes = classifications_parser(row['CLASSIFICATIONS'])
         class_nodes = ["MERGE " + create_classification_str_from_list(classes[i],"cl"+str(i)) for i in range(len(classes))]
         is_classes = ["CREATE (n) - [:IS_CLASS] -> (cl" + str(i) + ")" for i in range(len(classes))]
@@ -351,7 +343,7 @@ def add_cde_from_df(row_iloc,df,g):
         query += "\n".join(is_classes) + "\n"
     with g.session() as q:
         z = q.run(query)
-    if is_not_nan(row['PERMISSIBLE_VALUES']):
+    if utils.is_not_nan(row['PERMISSIBLE_VALUES']):
         ans_list = answer_parser(row['PERMISSIBLE_VALUES'])
         for i in range(len(ans_list)):
             query = "MATCH " + cde_node_str + "\n"
@@ -385,9 +377,9 @@ if __name__ == "__main__":
         REF_DIR = sys.argv[1]
     else:
         REF_DIR = "/data"
-    t = read_file("Thesaurus.tsv",REF_DIR)
-    c = read_file("caDSR-export-20190528-1320.tsv",REF_DIR)
-    graphDB = neo4j_connect()
+    t = data_loader.read_file("Thesaurus.tsv",REF_DIR)
+    c = data_loader.read_file("caDSR-export-20200402-0932.tsv",REF_DIR)
+    graphDB = utils.neo4j_connect()
     with graphDB.session() as q:
         q.run("CREATE CONSTRAINT concept_code ON (concept:Concept) ASSERT concept.CODE IS UNIQUE")
         q.run("CREATE CONSTRAINT synonym_name ON (synonym:Synonym) ASSERT synonym.name IS UNIQUE")

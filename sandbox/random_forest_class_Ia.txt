@@ -1,0 +1,97 @@
+z = []
+stat_columns = [
+    max_cde,
+    max_dec,
+    max_que,
+    max_syn_class,
+    max_syn_prop,
+    max_syn_obj,
+    max_enum_concept,
+    max_enum_ans,
+    max_ans_score,
+    max_val_score,
+    pct_cde,
+    pct_dec,
+    pct_que,
+    pct_syn_class,
+    pct_syn_prop,
+    pct_syn_obj,
+    pct_enum_concept,
+    pct_enum_ans,
+    pct_ans_score,
+    pct_val_score,
+    n,
+    metric2_max
+]
+for i in Y['DB'].unique():
+    for j in Y['col_no'].loc[Y['DB'] == i].unique():
+        z.append(Y.loc[(Y['DB']==i) & (Y['col_no'] == j),stat_columns].iloc[0])
+
+
+
+predictor_columns = [
+    max_cde,
+    max_dec,
+    max_que,
+    # max_syn_class,
+    max_syn_prop,
+    # max_syn_obj,
+    max_enum_concept,
+    max_enum_ans,
+    max_ans_score,
+    # max_val_score,
+    # pct_cde,
+    # pct_dec,
+    # pct_que,
+    # pct_syn_class,
+    # pct_syn_prop,
+    # pct_syn_obj,
+    # pct_enum_concept,
+    # pct_enum_ans,
+    # pct_ans_score,
+    # pct_val_score,
+    n,
+    # logn
+]
+
+D = pd.DataFrame(z)
+D['Y'] = (D['metric2_max'] == 0).astype('int') #These are nomatch rows.
+D['logn'] = np.log(D['n'])
+
+test_inds = sample(range(D.shape[0]),int(0.2*D.shape[0]))
+tng_inds = [i for i in range(D.shape[0]) if i not in test_inds]
+
+XX = D[predictor_columns].iloc[tng_inds]
+XT = D[predictor_columns].iloc[test_inds]
+
+YY = D['Y'].iloc[tng_inds]
+YT = D['Y'].iloc[test_inds]
+
+
+poly = preprocessing.PolynomialFeatures(degree=2)
+X_poly = poly.fit_transform(XX)
+# logreg = logistic_regression(
+#     C = 1,
+#     max_iter = 1000,
+#     tol=0.000000001,
+#     solver='liblinear'
+# )
+# logreg.fit(D[predictor_columns],D['Y'])
+# s = logreg.score(D[predictor_columns],D['Y'])
+# print(s)
+
+# logreg.fit(X_poly,D['Y'])
+# s = logreg.score(X_poly,D['Y'])
+# print(s)
+
+
+
+rf = RandomForestClassifier(
+    n_estimators=50,
+    criterion='gini',
+    max_features = 'auto'
+)
+rf.fit(XX,YY)
+print(rf.score(XX,YY))
+print(rf.score(XT,YT))
+

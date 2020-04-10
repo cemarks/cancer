@@ -1,11 +1,14 @@
-from sklearn.preprocessing import PolynomialFeatures
-from sklearn.linear_model import Ridge as ridge_regression
-from sklearn.linear_model import LogisticRegression as logistic_regression
+import pandas as pd
+from sklearn.linear_model import Ridge,LogisticRegression
+from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier,RandomForestRegressor
+from sklearn.model_selection import KFold
+from sklearn.preprocessing import PolynomialFeatures
+from sklearn import svm
 import os, pickle
 import numpy as np
+from matplotlib import pyplot as plt
 from random import sample
-from sklearn.model_selection import train_test_split
 
 os.chdir("/home/cemarks/Projects/cancer/sandbox")
 
@@ -13,96 +16,8 @@ with open("expanded_X.pkl",'rb') as f:
     X = pickle.load(f)
 
 
-# X['max_cde'] = 0
-# X['max_dec'] = 0
-# X['max_que'] = 0
-# X['max_syn_class'] = 0
-# X['max_syn_prop'] = 0
-# X['max_syn_obj'] = 0
-# X['max_enum_concept'] = 0
-# X['max_enum_ans'] = 0
-# X['n'] = 0
-# X['pct_cde'] = 0
-# X['pct_dec'] = 0
-# X['pct_que'] = 0
-# X['pct_syn_class'] = 0
-# X['pct_syn_prop'] = 0
-# X['pct_syn_obj'] = 0
-# X['pct_enum_concept'] = 0
-# X['pct_enum_ans'] = 0
-# X['pct_ans_score'] = 0
-# X['pct_val_score'] = 0
-# X['cde_frac'] = 0
-# X['dec_frac'] = 0
-# X['que_frac'] = 0
-# X['syn_prop_frac'] = 0
-# X['syn_obj_frac'] = 0
-# X['enum_concept_frac'] = 0
-# X['enum_ans_frac'] = 0
-# X['ans_score_frac'] = 0
-# X['val_score_frac'] = 0
-# X['metric2_max'] = 0
-# X['metric2_frac'] = 0
-# X['pct_metric2_pos'] = 0
-
-
-# for i in X['DB'].unique():
-#     for j in X['col_no'].loc[X['DB'] == i].unique():
-#         inds = (X['DB'] == i) & (X['col_no'] == j)
-#         max_cde = max(X['ftsearch_cde'].loc[inds])
-#         max_dec = max(X['ftsearch_dec'].loc[inds])
-#         max_que = max(X['ftsearch_question'].loc[inds])
-#         max_syn_class = max(X['ftsearch_syn_class'].loc[inds])
-#         max_syn_prop = max(X['ftsearch_syn_prop'].loc[inds])
-#         max_syn_obj = max(X['ftsearch_syn_obj'].loc[inds])
-#         max_enum_concept = max(X['enum_concept_search'].loc[inds])
-#         max_enum_ans = max(X['enum_answer_search'].loc[inds])
-#         max_ans_score = max(X['answer_count_score'].loc[inds])
-#         max_val_score = max(X['value_score'].loc[inds])
-#         max_metric2 = max(X['metric2'].loc[inds])
-#         n = sum(inds)
-#         X.loc[inds,'max_cde'] = max_cde
-#         X.loc[inds,'max_dec'] = max_dec
-#         X.loc[inds,'max_que'] = max_que
-#         X.loc[inds,'max_syn_class'] = max_syn_class
-#         X.loc[inds,'max_syn_prop'] = max_syn_prop
-#         X.loc[inds,'max_syn_obj'] = max_syn_obj
-#         X.loc[inds,'max_enum_concept'] = max_enum_concept
-#         X.loc[inds,'max_enum_ans'] = max_enum_ans
-#         X.loc[inds,'max_ans_score'] = max_ans_score
-#         X.loc[inds,'max_val_score'] = max_val_score
-#         X.loc[inds,'metric2_max'] = max_metric2
-#         X.loc[inds,'n'] = n
-#         X.loc[inds,'pct_cde'] = sum(inds & X['ftsearch_cde'] > 0)/n
-#         X.loc[inds,'pct_dec'] = sum(inds & X['ftsearch_dec'] > 0)/n
-#         X.loc[inds,'pct_que'] = sum(inds & X['ftsearch_question'] > 0)/n
-#         X.loc[inds,'pct_syn_class'] = sum(inds & X['ftsearch_syn_class'] > 0)/n
-#         X.loc[inds,'pct_syn_prop'] = sum(inds & X['ftsearch_syn_prop'] > 0)/n
-#         X.loc[inds,'pct_syn_obj'] = sum(inds & X['ftsearch_syn_obj'] > 0)/n
-#         X.loc[inds,'pct_enum_concept'] = sum(inds & X['enum_concept_search'] > 0)/n
-#         X.loc[inds,'pct_enum_ans'] = sum(inds & X['enum_answer_search'] > 0)/n
-#         X.loc[inds,'pct_ans_score'] = sum(inds & X['answer_count_score'] > 0)/n
-#         X.loc[inds,'pct_val_score'] = sum(inds & X['value_score'] > 0)/n
-#         X.loc[inds,'pct_metric2_pos'] = sum(inds & X['metric2'] > 0)/n
-#         X.loc[inds,'cde_frac'] = 0 if max_cde == 0 else X.loc[inds,'ftsearch_cde']/max_cde
-#         X.loc[inds,'dec_frac'] = 0 if max_dec == 0 else X.loc[inds,'ftsearch_dec']/max_dec
-#         X.loc[inds,'que_frac'] = 0 if max_que == 0 else X.loc[inds,'ftsearch_question']/max_que
-#         X.loc[inds,'syn_class_frac'] = 0 if max_syn_class == 0 else X.loc[inds,'ftsearch_syn_class']/max_syn_class
-#         X.loc[inds,'syn_prop_frac'] = 0 if max_syn_prop == 0 else X.loc[inds,'ftsearch_syn_prop']/max_syn_prop
-#         X.loc[inds,'syn_obj_frac'] = 0 if max_syn_obj == 0 else X.loc[inds,'ftsearch_syn_obj']/max_syn_obj
-#         X.loc[inds,'enum_concept_frac'] = 0 if max_enum_concept == 0 else X.loc[inds,'enum_concept_search']/max_enum_concept
-#         X.loc[inds,'enum_ans_frac'] = 0 if max_enum_ans == 0 else X.loc[inds,'enum_answer_search']/max_enum_ans
-#         X.loc[inds,'ans_score_frac'] = 0 if max_ans_score == 0 else X.loc[inds,'answer_count_score']/max_ans_score
-#         X.loc[inds,'val_score_frac'] = 0 if max_val_score == 0 else X.loc[inds,'value_score']/max_val_score
-#         X.loc[inds,'metric2_frac'] = 0 if max_metric2 == 0 else X.loc[inds,'metric2']/max_metric2
-
-
 # print("\n".join([str(i) + " " + X.columns[i] for i in range(X.shape[1])]))
 # # X['log_cde'] = X.apply(lambda z: z[7]/np.log(1+z[16]),axis=1)
-
-X['metric3'] = (X['metric1'] > 1).astype('int')
-X['metric4'] = (X['metric2'] > 0).astype('int')
-X['metric5'] = (X['metric2_frac'] > 0.5).astype('int')
 
 not_founds = [
     (6428091, 0, 9),
@@ -128,17 +43,8 @@ Y = X.loc[found_inds]
 
 
 
-predictor_columns = [
-#    "ftsearch_syn_class",
-    # "ftsearch_syn_prop",
-    # "ftsearch_syn_obj",
-    # "ftsearch_cde",
-    # "ftsearch_dec",
-    # "ftsearch_question",
-    # "enum_concept_search",
-    # "enum_answer_search",
-    # "answer_count_score",
-    # "value_score",
+z = []
+stat_columns = [
     "max_cde",
     "max_dec",
     "max_que",
@@ -159,98 +65,10 @@ predictor_columns = [
     "pct_enum_ans",
     "pct_ans_score",
     "pct_val_score",
-    "cde_frac",
-    "dec_frac",
-    "que_frac",
-    "syn_class_frac",
-    "syn_prop_frac",
-    "syn_obj_frac",
-    "enum_concept_frac",
-    "enum_ans_frac",
-    "ans_score_frac",
-    "val_score_frac",
-    "n"
-
+    "n",
+    "metric2_max"
 ]
-
-# predictor_columns = X.columns[4:14]
-lin = ridge_regression(alpha=1)
-lin.fit(X[predictor_columns],X['metric2'])
-s = lin.score(X[predictor_columns],X['metric2'])
-
-
-poly = PolynomialFeatures(degree = 2)
-Y_poly = poly.fit_transform(Y[predictor_columns])
-lin = ridge_regression(alpha=100)
-lin.fit(Y_poly,Y['metric2_frac'])
-s = lin.score(Y_poly,Y['metric2_frac'])
-print(s)
-
-logreg = logistic_regression(
-    class_weight = {
-        0:0.04474471247694264,
-        1:0.9552552875230573
-    },
-    C = 0.1
-)
-logreg.fit(X_poly,X['metric4'])
-s = logreg.score(X_poly,X['metric4'])
-print(s)
-
-
-
-
-poly = PolynomialFeatures(degree = 2)
-X_poly = poly.fit_transform(Y[predictor_columns])
-# lin = ridge_regression(alpha=10)
-# lin.fit(X_poly,X['metric2'])
-# s = lin.score(X_poly,X['metric2'])
-# print(s)
-
-logreg = logistic_regression(
-    class_weight = {
-        0:0.0002749811274745059,
-        1:0.9997250188725255
-    },
-    C = 0.1
-)
-logreg.fit(X_poly,Y['metric5'])
-s = logreg.score(X_poly,Y['metric5'])
-print(s)
-
-
-
-logreg = logistic_regression(
-    class_weight = {
-        0:0.04760675728928941,
-        1:0.9523932427107106
-    },
-    C = 0.1
-)
-logreg.fit(X_poly,Y['metric4'])
-s = logreg.score(X_poly,Y['metric4'])
-print(s)
-
-
-
-
-z = []
-for i in X['DB'].unique():
-    for j in X['col_no'].loc[X['DB'] == i].unique():
-        inds = (X['DB'] == i) & (X['col_no'] == j)
-        z.append(max(X['metric2'].loc[inds]))
-
-
-
-
-z = []
-for i in X['DB'].unique():
-    for j in X['col_no'].loc[X['DB'] == i].unique():
-        z.append((i,j))
-
-
-z = []
-stat_columns = for i in Y['DB'].unique():
+for i in Y['DB'].unique():
     for j in Y['col_no'].loc[Y['DB'] == i].unique():
         z.append(Y.loc[(Y['DB']==i) & (Y['col_no'] == j),stat_columns].iloc[0])
 
@@ -260,140 +78,125 @@ predictor_columns = [
     "max_cde",
     "max_dec",
     "max_que",
-    "max_syn_class",
+       #"max_syn_class",
     "max_syn_prop",
-    "max_syn_obj",
+      #"max_syn_obj",
     "max_enum_concept",
-    "max_enum_ans",
-    "max_ans_score",
-    "max_val_score",
-    # "pct_cde",
+    #"max_enum_ans",
+    #"max_ans_score",
+    #"max_val_score",
+    #"pct_cde",
     # "pct_dec",
-    # "pct_que",
-    # "pct_syn_class",
-    # "pct_syn_prop",
-    # "pct_syn_obj",
-    # "pct_enum_concept",
-    # "pct_enum_ans",
-    # "pct_ans_score",
-    # "pct_val_score",
-    "n"
+    #"pct_que",
+      #"pct_syn_class",
+    #"pct_syn_prop",
+      #"pct_syn_obj",
+      #"pct_enum_concept",
+    #"pct_enum_ans",
+      #"pct_ans_score",
+      #"pct_val_score",
+    # "n",
+      "logn"
 ]
+
 
 D = pd.DataFrame(z)
-D['Y'] = D.apply(lambda z: 1 if z[21] == 0 else 0, axis=1) #These are nomatch rows.
+D['Y'] = (D['metric2_max'] == 0).astype('int') #These are nomatch rows.
+D['logn'] = np.log(D['n'])
+
+kf = KFold(n_splits=10,shuffle=True)
+INDS = kf.split(X_poly)
+
+o = []
+ot = []
+
+for train_index,test_index in INDS:
+    XX = D[predictor_columns].iloc[train_index] 
+    XT = D[predictor_columns].iloc[test_index] 
+    # XX = X_poly[train_index]
+    # XT = X_poly[test_index]
+    YY = D['Y'].iloc[train_index]
+    YT = D['Y'].iloc[test_index]
+    s = []
+    st = []
+#    for c in [0.00005,0.0001,0.0002,0.0005,0.001,0.005,0.01]:
+    for c in range(-2,8):
+        logreg = LogisticRegression(
+            C = 10**c,
+            max_iter = 10000,
+            tol=0.000000001,
+            solver='liblinear'
+        )
+        logreg.fit(XX,YY)
+        s.append(logreg.score(XX,YY))
+        st.append(logreg.score(XT,YT))
+    o.append(s)
+    ot.append(st)
+
+o = np.array(o)
+m = np.mean(o,axis=0)
+print(m)
+print()
+ot = np.array(ot)
+mt = np.mean(ot,axis=0)
+print(mt)
+print()
 
 
-log_transforms = [
-    # "max_cde",
-    # "max_dec",
-    # "max_que",
-    # "max_syn_class",
-    # "max_syn_prop",
-    # "max_syn_obj",
-    # "max_enum_concept",
-    # "max_enum_ans",
-    # "max_ans_score",
-    # "max_val_score",
-    "n"
-]
-
-for l in log_transforms:
-    D[l] = np.log(D[l]+1)
-
-scaler = preprocessing.MinMaxScaler()
-scaler.fit(D[predictor_columns])
-
-poly = PolynomialFeatures(degree = 2)
-
-test_inds = sample(range(D.shape[0]),int(0.1*D.shape[0]))
+best_c = 10
+best_model = LogisticRegression(
+    C = best_c,
+    max_iter = 10000,
+    tol=0.000000001,
+    solver='liblinear'
+)
+test_inds = sample(range(D.shape[0]),10)
 tng_inds = [i for i in range(D.shape[0]) if i not in test_inds]
 
-# XX = scaler.transform(D[predictor_columns])
 XX = D[predictor_columns].iloc[tng_inds]
 XT = D[predictor_columns].iloc[test_inds]
 
 YY = D['Y'].iloc[tng_inds]
 YT = D['Y'].iloc[test_inds]
+best_model.fit(XX,YY)
+print(best_model.score(XX,YY))
+print(best_model.score(XT,YT))
 
-X_poly = poly.fit_transform(XX)
-# logreg = logistic_regression(
-#     C = 1,
-#     max_iter = 1000,
-#     tol=0.000000001,
-#     solver='liblinear'
-# )
-# logreg.fit(D[predictor_columns],D['Y'])
-# s = logreg.score(D[predictor_columns],D['Y'])
-# print(s)
-
-# logreg.fit(X_poly,D['Y'])
-# s = logreg.score(X_poly,D['Y'])
-# print(s)
-
-
-# from sklearn.model_selection import KFold
-# from sklearn import preprocessing
-
-
-kf = KFold()
-
-INDS = kf.split(X_poly)
-o = []
-ot = []
-for train_index,test_index in INDS:
-    s = []
-    st = []
-    # for c in [0.00002,0.0001,0.0005,0.001,0.002]:
-    for c in [0.001]:
-        logreg = logistic_regression(
-            C = c,
-            max_iter = 1000,
-            tol=0.0001,
-            solver='newton-cg'
-        )
-        logreg.fit(X_poly[train_index],YY.iloc[train_index])
-        s.append(logreg.score(X_poly[test_index],YY.iloc[test_index]))
-        st.append(logreg.score(X_poly[train_index],YY.iloc[train_index]))
-    o.append(s)
-    ot.append(st)
-
-o = np.array(o)
-m = np.mean(o, axis=0)
-print(m)
-ot = np.array(ot)
-mt = np.mean(ot, axis=0)
-print(mt)
-
-
-best_model = logistic_regression(
-    C = 0.001,
-    max_iter = 1000,
-    tol=0.0001,
-    solver='newton-cg'
-)
-
-best_model.fit(X_poly,YY)
-print(best_model.score(poly.transform(XT),YT))
-
-a = ensemble.AdaBoostClassifier(best_model)
-a.fit(X_poly,YY)
-print(a.score(poly.transform(XT),YT))
-
-rf = RandomForestClassifier(
-    n_estimators=10,
-    criterion='entropy',
-    max_features = 'auto'
-)
-rf.fit(XX,YY)
-print(rf.score(XT,YT))
-rf.fit(X_poly,YY)
-print(rf.score(poly.transform(XT),YT))
-
-from matplotlib import pyplot as plt
 
 probs = best_model.predict_proba(
-    poly.transform(XT)
+    XX
+)
+
+gt = [(probs[i][0],YY.iloc[i]) for i in range(len(probs))]
+gt.sort(key=lambda z: z[0])
+x = [0]
+y = [0]
+
+pos_count = sum([i[1] for i in gt])
+neg_count = len(gt) - pos_count
+
+x_count = 0
+y_count = 0
+for i in gt:
+    if i[1] == 0:
+        x_count+=1
+    else:
+        y_count+=1
+    x.append(x_count/neg_count)
+    y.append(y_count/pos_count)
+
+x.append(1)
+y.append(1)
+
+plt.plot(x,y)
+plt.plot([0,1],[0,1],"--")
+plt.show()
+plt.clf()
+plt.close()
+
+
+probs = logreg.predict_proba(
+    XT
 )
 
 gt = [(probs[i][0],YT.iloc[i]) for i in range(len(probs))]
@@ -423,14 +226,20 @@ plt.show()
 plt.clf()
 plt.close()
 
+model_dict = {
+    'predictor_columns': predictor_columns,
+    'model': best_model
+}
+
+with open('nomatch_model.pkl', 'wb') as f:
+    pickle.dump(model_dict,f)
 
 
-#################3
 
-# Round II: for those with matches, get best for round 3
 
-Z = Y.loc[Y['metric2_max'] > 0]
+#################
 
+# Round II: get best value columns
 
 predictor_columns = [
     # "ftsearch_syn_class",
@@ -443,159 +252,145 @@ predictor_columns = [
     "enum_answer_search",
     "answer_count_score",
     "value_score",
-    # "max_cde",
-    # "max_dec",
-    # "max_que",
+    "max_cde",
+    "max_dec",
+    "max_que",
     # "max_syn_class",
-    # "max_syn_prop",
+    "max_syn_prop",
     # "max_syn_obj",
-    # "max_enum_concept",
-    # "max_enum_ans",
-    # "max_ans_score",
-    # "max_val_score",
-    # "pct_cde",
-    # "pct_dec",
+    "max_enum_concept",
+    "max_enum_ans",
+    "max_ans_score",
+    "max_val_score",
+    "pct_cde",
+    "pct_dec",
     # "pct_que",
     # "pct_syn_class",
-    # "pct_syn_prop",
-    # "pct_syn_obj",
-    # "pct_enum_concept",
+    "pct_syn_prop",
+    "pct_syn_obj",
+    "pct_enum_concept",
     # "pct_enum_ans",
-    # "pct_ans_score",
-    # "pct_val_score",
-    "cde_frac",
-    "dec_frac",
-    "que_frac",
-    "syn_class_frac",
-    "syn_prop_frac",
-    "syn_obj_frac",
-    "enum_concept_frac",
-    "enum_ans_frac",
-    "ans_score_frac",
-    "val_score_frac",
+    "pct_ans_score",
+    "pct_val_score",
+    # "cde_frac",
+    # "dec_frac",
+    # "que_frac",
+    # "syn_class_frac",
+    # "syn_prop_frac",
+    # "syn_obj_frac",
+    # "enum_concept_frac",
+    # "enum_ans_frac",
+    # "ans_score_frac",
+    # "val_score_frac",
     "n",
     # "logn"
 ]
 
-Z['logn'] = np.log(Z['n'])
 
-poly = PolynomialFeatures(degree = 2)
+o=[]
+for i in range(len(tsvs)):
+    tsv = tsvs[i][0]
+    J = Z['col_no'].loc[Z['DB']==tsv].unique()
+    for j in range(len(J)):
+        o.append((tsv,J[j]))
 
-cutoff = 0.5
-Z['metric5'] = (Z['metric2_frac'] > cutoff).astype('int')
-Z_poly = poly.fit_transform(Z[predictor_columns])
-
-n_pos = sum(Z['metric5'])
-wt = n_pos/len(Z)
-
-# logreg = logistic_regression(
-#     class_weight = {
-#         0:wt,
-#         1:1-wt
-#     },
-#     C = 1000,
-#     tol = 0.00001,
-#     max_iter = 1000,
-#     solver = 'newton-cg'
-# )
-# logreg.fit(Z_poly,Z['metric5'])
-# s = logreg.score(Z_poly,Z['metric5'])
-# print(s)
-
-rf = RandomForestClassifier(
-    n_estimators = 50,
-    class_weight={
-        0: wt,
-        1: 1-wt
-    }
-)
-rf.fit(Z_poly,Z['metric5'])
-print(rf.score(Z_poly,Z['metric5']))
-
-rf = RandomForestRegressor(
-    n_estimators = 50
-)
-rf.fit(Z_poly,Z['metric2'])
-print(rf.score(Z_poly,Z['metric2']))
-
-
-Z['metric4'] = Z.apply(lambda z: 0 if z[15] == 0 else 1, axis=1)
-n_pos = sum(Z['metric4'])
-
-print(n_pos)
-
-wt = n_pos/len(Z)
-
-
-# pos_inds = [i for i, x in enumerate((Z['metric4'] == 1).tolist()) if x]
-# neg_inds = [i for i, x in enumerate((Z['metric4'] == 0).tolist()) if x]
-
-# pos_test = sample(pos_inds, int(0.15*len(pos_inds)))
-# neg_test = sample(neg_inds, int(0.15*len(neg_inds)))
-
-# training_inds = list(set(Z.index.tolist()) - set(pos_test+neg_test))
-# test_inds = pos_test + neg_test
-
-rf = RandomForestClassifier(
-    n_estimators = 100,
-    class_weight={
-        0: wt,
-        1: 1-wt
-    }
-)
-rf.fit(Z[predictor_columns].iloc[training_inds],Z['metric4'].iloc[training_inds])
-print(rf.score(Z[predictor_columns].iloc[training_inds],Z['metric4'].iloc[training_inds]))
-print(rf.score(Z[predictor_columns].iloc[test_inds],Z['metric4'].iloc[test_inds]))
-print(rf.score(Z[predictor_columns].iloc[pos_test],Z['metric4'].iloc[pos_test]))
-
-
-rf.fit(Z_poly[training_inds],Z['metric4'].iloc[training_inds])
-print(rf.score(Z_poly[training_inds],Z['metric4'].iloc[training_inds]))
-print(rf.score(Z_poly[test_inds],Z['metric4'].iloc[test_inds]))
-print(rf.score(Z_poly[pos_inds],Z['metric4'].iloc[pos_inds]))
-
-
-
-rand_ints = np.random.permutation(range(len(Z)))
-train_test_splitpoint = int(0.85*len(Z))
+rand_ints = np.random.permutation(range(len(o)))
+train_test_splitpoint = int(0.85*len(rand_ints))
 training_inds = rand_ints[0:train_test_splitpoint]
 test_inds = rand_ints[train_test_splitpoint:len(rand_ints)]
 
-rfr = RandomForestRegressor(
-    n_estimators = 50
+train_vector = pd.Series([False]*len(Z))
+train_vector.index = Z.index
+
+for t,i in enumerate(training_inds):
+    train_vector = train_vector | ((Z['DB']==o[i][0]) & (Z['col_no']==o[i][1]))
+
+test_vector = pd.Series([False]*len(Z))
+test_vector.index = Z.index
+
+for t,i in enumerate(test_inds):
+    test_vector = test_vector | ((Z['DB']==o[i][0]) & (Z['col_no']==o[i][1]))
+
+poly = PolynomialFeatures(degree = 2)
+Z_poly= poly.fit_transform(Z[predictor_columns])
+
+# for k in range(1,min(11,len(predictor_columns))):
+for k in range(-4,0,1):
+    # rfr = RandomForestRegressor(
+    #     n_estimators = 30,
+    #     max_features = k
+    # )
+    rfr = Ridge(
+        alpha=10**k,
+        fit_intercept = True,
+        normalize= True,
+        tol = 0.00001,
+        solver='lsqr', # auto, svd, cholesky, lsqr, sparse_cg, sag, saga
+    )
+    rfr.fit(Z_poly[train_vector],(Z['metric2_frac'].loc[train_vector]))
+    print(k)
+    print(rfr.score(Z_poly[train_vector],(Z['metric2_frac'].loc[train_vector])))
+    print(rfr.score(poly.transform(Z[predictor_columns].loc[test_vector]),(Z['metric2_frac'].loc[test_vector])))
+    print()
+
+rfr = Ridge(
+    alpha=0.01,
+    fit_intercept = True,
+    normalize= True,
+    tol = 0.000001,
+    solver='lsqr', # auto, svd, cholesky, lsqr, sparse_cg, sag, saga
 )
-rfr.fit(Z[predictor_columns].iloc[training_inds],(Z['metric2'].iloc[training_inds]))
-print(rfr.score(Z[predictor_columns].iloc[training_inds],(Z['metric2'].iloc[training_inds])))
-print(rfr.score(Z[predictor_columns].iloc[test_inds],(Z['metric2'].iloc[test_inds])))
+# rfr.fit(Z[predictor_columns].loc[train_vector],(Z['metric2'].loc[train_vector]))
+# print(k)
+# print(rfr.score(Z[predictor_columns].loc[train_vector],(Z['metric2'].loc[train_vector])))
+# print(rfr.score(Z[predictor_columns].loc[test_vector],(Z['metric2'].loc[test_vector])))
+rfr.fit(Z_poly[train_vector],(Z['metric2'].loc[train_vector]))
+print(rfr.score(Z_poly[train_vector],(Z['metric2'].loc[train_vector])))
+print(rfr.score(poly.transform(Z[predictor_columns].loc[test_vector]),(Z['metric2'].loc[test_vector])))
+print()
 
-# rfr.fit(Z_poly[training_inds],Z['metric2'].iloc[training_inds])
-# print(rfr.score(Z_poly[training_inds],Z['metric2'].iloc[training_inds]))
-# print(rfr.score(Z_poly[test_inds],Z['metric2'].iloc[test_inds]))
+model_dict = {
+    'predictor_columns': predictor_columns,
+    'model': rfr,
+    'transform': poly
+}
+
+with open('value_regression.pkl', 'wb') as f:
+    pickle.dump(model_dict,f)
+
+Z['metric2_predict'] = rfr.predict(poly.transform(Z[predictor_columns]))
+
+for i in range(12):
+    o2 = []
+    ss = 0
+    # for i in range(len(tsvs)):
+    tsv = o[test_inds[i]][0]
+    col_no = o[test_inds[i]][1]
+    A = Z.loc[(Z['DB']==tsv) & (Z['col_no']==col_no),['metric1','metric2','metric2_predict','index']]
+    l = A.values.tolist()
+    l.sort(key = lambda z: z[2], reverse=True)
+    for ii in range(min(20,len(l))):
+        print(l[ii])
+    print()
+    print()
+
+print("\t".join([str(kk) for kk in l[0]]))
+k = 0
+if 1.5 in [i[0] for i in l]:
+    best_ind = [i[0] for i in l].index(1.5)
+    best_ind_score = l[best_ind][2]
+else:
+    best_ind = None
+    best_ind_score = None
+while (l[k][1]==1) and (k < len(l)):
+    k += 1
+if k == 0:
+    o2.append((k,best_ind,best_ind_score,None,None,l[k][1],l[k][2]))
+elif k == len(l):
+    o2.append((k,best_ind,best_ind_score,l[k-1][1],l[k-1][2],None,None))
+else:
+    o2.append((k,best_ind,best_ind_score,l[k-1][1],l[k-1][2],l[k][1],l[k][2]))
 
 
-rdr = ridge_regression(
-    100
-)
-rdr.fit(Z[predictor_columns].iloc[training_inds],(Z['metric2'].iloc[training_inds]))
-print(rdr.score(Z[predictor_columns].iloc[training_inds],(Z['metric2'].iloc[training_inds])))
-print(rdr.score(Z[predictor_columns].iloc[test_inds],(Z['metric2'].iloc[test_inds])))
 
-# rdr.fit(Z_poly[training_inds],Z['metric2'].iloc[training_inds])
-# print(rdr.score(Z_poly[training_inds],Z['metric2'].iloc[training_inds]))
-# print(rdr.score(Z_poly[test_inds],Z['metric2'].iloc[test_inds]))
-
-
-
-
-
-Z['metric2_predict'] = rfr.predict(Z[predictor_columns])
-
-i = 0
-tsv = tsvs[i][0]
-J = Z['col_no'].loc[Z['DB']==tsv].unique()
-j = 11
-col_no = J[j]
-A = Z.loc[(Z['DB']==tsv) & (Z['col_no']==col_no),['metric2','metric2_predict']]
-l = A.values.tolist()
-l.sort(key = lambda z: z[1], reverse=True)
 

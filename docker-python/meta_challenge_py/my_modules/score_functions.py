@@ -1,7 +1,8 @@
 #!/usr/bin/python3
 
 import json
-from my_modules.utils import *
+from my_modules import utils
+import numpy as np
 
 # Score functions
 
@@ -28,13 +29,13 @@ def get_de_id(res_annotation):
 
 def get_de_concepts(cde_id,g):
     query = "MATCH (n:CDE) - [:IS_CAT] - (d:DEC) - [] - (c:Concept) WHERE n.CDE_ID = {0:d} RETURN c.CODE".format(cde_id)
-    codes = query_graph(query,g).value()
+    codes = utils.query_graph(query,g).value()
     return codes
 
 def get_de_concepts_list(cde_index_list,g):
     query = "MATCH (n:CDE) - [:IS_CAT] - (d:DEC) - [] - (c:Concept) WHERE ID(n) IN [{0:s}] ".format(",".join([str(i) for i in cde_index_list]))
     query += "RETURN ID(n),COLLECT(c.CODE)"
-    codes = query_graph(query,g).values()
+    codes = utils.query_graph(query,g).values()
     return codes
 
 def score_concept_overlap(cde_id1,cde_id2,g):
@@ -69,7 +70,7 @@ def score_value_domain(submitted_vd,annotated_res,g):
     annotated_vd = annotated_res['valueDomain']
     annotated_cde_id = annotated_res['dataElement']['id']
     query = 'MATCH (n:CDE) WHERE n.CDE_ID = {0:d} RETURN n.VALUE_DOMAIN_TYPE'.format(annotated_cde_id)
-    result = query_graph(query,g)
+    result = utils.query_graph(query,g)
     value = result.value()
     submitted_observed_values = [i['observedValue'] for i in submitted_vd]
     enumerated = value[0] == "Enumerated"
@@ -116,6 +117,24 @@ def score_result(submitted_result_dict,annotated_result_dict,g):
 def score_column(submitted_col_dict,annotation_json,g):
     column_no = submitted_col_dict['columnNumber']
     annotated_result_dict = get_col_result_annotation(annotation_json,column_no)
+    col_results = submitted_col_dict['results']
+    scores = []
+    for r in col_results:
+        de_score,dec_score,vd_score = score_result(r['result'],annotated_result_dict,g)
+        initial_score = WEIGHTS['de_wt'] * de_score + WEIGHTS['dec_wt'] * dec_score + WEIGHTS['vd_wt'] * vd_score
+        additional = (WEIGHTS['top_wt'] + 1 - r['resultNumber']) * np.mean([de_score,dec_score,vd_score])
+        scores.append(initial_score + additional)
+    return(np.max(scores))
+
+def score_submission(submitted_json,annotation_json,g):
+    scores = []
+    for submitted_col in submitted_json['columns']:
+        s = score_column(submitted_col,annotation_json,g)
+        scores.append(s)
+    return np.mean(s)
+
+
+
 
 
 
