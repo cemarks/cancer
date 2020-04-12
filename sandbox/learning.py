@@ -12,7 +12,7 @@ from random import sample
 
 os.chdir("/home/cemarks/Projects/cancer/sandbox")
 
-with open("expanded_X.pkl",'rb') as f:
+with open("expanded_training_X.pkl",'rb') as f:
     X = pickle.load(f)
 
 
@@ -20,13 +20,8 @@ with open("expanded_X.pkl",'rb') as f:
 # # X['log_cde'] = X.apply(lambda z: z[7]/np.log(1+z[16]),axis=1)
 
 not_founds = [
-    (6428091, 0, 9),
-    (6154731, 1, 32),
-    (6002302, 1, 37),
-    (6154728, 1, 40),
-    (6154731, 2, 29),
-    (2608243, 2, 30),
-    (5143957, 2, 32)
+    (6002302, "APOLLO-2-leaderboard", 38),
+    (2608243, "Outcome-Predictors-leaderboard", 31)
 ]
 
 INPUT_DIR = "/home/cemarks/Projects/cancer/data/leaderboard"
@@ -34,9 +29,9 @@ file_names = os.listdir(INPUT_DIR)
 file_splits = [os.path.splitext(f) for f in file_names]
 tsvs = [i for i in file_splits if i[1] == '.tsv']
 dbs = [i[0] for i in tsvs]
-found_inds = (X['DB'] != tsvs[not_founds[0][1]][0]) | (X['col_no'] != not_founds[0][2])
+found_inds = (X['DB'] != not_founds[0][1]) | (X['col_no'] != not_founds[0][2])
 for j in not_founds[1:len(not_founds)]:
-    found_inds = found_inds & ((X['DB'] != tsvs[j[1]][0]) | (X['col_no'] != j[2]))
+    found_inds = found_inds & ((X['DB'] != j[1]) | (X['col_no'] != j[2]))
 
 
 Y = X.loc[found_inds]
@@ -48,9 +43,12 @@ stat_columns = [
     "max_cde",
     "max_dec",
     "max_que",
-    "max_syn_class",
-    "max_syn_prop",
-    "max_syn_obj",
+    "max_syn_classsum",
+    "max_syn_propsum",
+    "max_syn_objsum",
+    "max_syn_classmax",
+    "max_syn_propmax",
+    "max_syn_objmax",
     "max_enum_concept",
     "max_enum_ans",
     "max_ans_score",
@@ -58,13 +56,17 @@ stat_columns = [
     "pct_cde",
     "pct_dec",
     "pct_que",
-    "pct_syn_class",
-    "pct_syn_prop",
-    "pct_syn_obj",
+    "pct_syn_classsum",
+    "pct_syn_propsum",
+    "pct_syn_objsum",
+    "pct_syn_classmax",
+    "pct_syn_propmax",
+    "pct_syn_objmax",
     "pct_enum_concept",
     "pct_enum_ans",
     "pct_ans_score",
     "pct_val_score",
+    "logn",
     "n",
     "metric2_max"
 ]
@@ -78,25 +80,31 @@ predictor_columns = [
     "max_cde",
     "max_dec",
     "max_que",
-       #"max_syn_class",
-    "max_syn_prop",
-      #"max_syn_obj",
-    "max_enum_concept",
-    #"max_enum_ans",
-    #"max_ans_score",
-    #"max_val_score",
-    #"pct_cde",
+    # "max_syn_classsum",
+    # "max_syn_propsum",
+    # "max_syn_objsum",
+    # "max_syn_classmax",
+    "max_syn_propmax",
+    # "max_syn_objmax",
+    # "max_enum_concept",
+    # "max_enum_ans",
+    # "max_ans_score",
+    # "max_val_score",
+    # "pct_cde",
     # "pct_dec",
-    #"pct_que",
-      #"pct_syn_class",
-    #"pct_syn_prop",
-      #"pct_syn_obj",
-      #"pct_enum_concept",
-    #"pct_enum_ans",
-      #"pct_ans_score",
-      #"pct_val_score",
+    # "pct_que",
+    # "pct_syn_classsum",
+    # "pct_syn_propsum",
+    # "pct_syn_objsum",
+    # "pct_syn_classmax",
+    # "pct_syn_propmax",
+    # "pct_syn_objmax",
+    # "pct_enum_concept",
+    # "pct_enum_ans",
+    # "pct_ans_score",
+    # "pct_val_score",
     # "n",
-      "logn"
+    "logn"
 ]
 
 
@@ -105,10 +113,13 @@ D['Y'] = (D['metric2_max'] == 0).astype('int') #These are nomatch rows.
 D['logn'] = np.log(D['n'])
 
 kf = KFold(n_splits=10,shuffle=True)
-INDS = kf.split(X_poly)
+INDS = kf.split(D)
 
 o = []
 ot = []
+
+# poly = PolynomialFeatures(degree=2)
+# X_poly = poly.fit_transform(D[predictor_columns])
 
 for train_index,test_index in INDS:
     XX = D[predictor_columns].iloc[train_index] 
@@ -120,7 +131,7 @@ for train_index,test_index in INDS:
     s = []
     st = []
 #    for c in [0.00005,0.0001,0.0002,0.0005,0.001,0.005,0.01]:
-    for c in range(-2,8):
+    for c in range(-8,8):
         logreg = LogisticRegression(
             C = 10**c,
             max_iter = 10000,
@@ -141,6 +152,11 @@ ot = np.array(ot)
 mt = np.mean(ot,axis=0)
 print(mt)
 print()
+
+
+
+
+
 
 
 best_c = 10
@@ -177,11 +193,18 @@ neg_count = len(gt) - pos_count
 
 x_count = 0
 y_count = 0
+xpt = []
+ypt = []
+found = False
 for i in gt:
     if i[1] == 0:
         x_count+=1
     else:
         y_count+=1
+    if (not found) and (i[0] > 0.66):
+        found = True
+        xpt.append(x_count/neg_count)
+        ypt.append(y_count/pos_count)
     x.append(x_count/neg_count)
     y.append(y_count/pos_count)
 
@@ -189,6 +212,7 @@ x.append(1)
 y.append(1)
 
 plt.plot(x,y)
+plt.scatter(xpt,ypt,s=30,c='red')
 plt.plot([0,1],[0,1],"--")
 plt.show()
 plt.clf()
@@ -241,12 +265,17 @@ with open('nomatch_model.pkl', 'wb') as f:
 
 # Round II: get best value columns
 
+Z = Y.loc[Y['metric4']==1]
+
 predictor_columns = [
-    # "ftsearch_syn_class",
-    "ftsearch_syn_prop",
-    # "ftsearch_syn_obj",
     "ftsearch_cde",
     "ftsearch_dec",
+    # "syn_classsum",
+    "syn_propsum",
+    # "syn_objsum",
+    # "syn_classmax",
+    # "syn_propmax",
+    # "syn_objmax",
     "ftsearch_question",
     "enum_concept_search",
     "enum_answer_search",
@@ -255,19 +284,25 @@ predictor_columns = [
     "max_cde",
     "max_dec",
     "max_que",
-    # "max_syn_class",
-    "max_syn_prop",
-    # "max_syn_obj",
+    # "max_syn_classsum",
+    "max_syn_propsum",
+    # "max_syn_objsum",
+    # "max_syn_classmax",
+    # "max_syn_propmax",
+    # "max_syn_objmax",
     "max_enum_concept",
-    "max_enum_ans",
+    # "max_enum_ans",
     "max_ans_score",
     "max_val_score",
     "pct_cde",
     "pct_dec",
     # "pct_que",
-    # "pct_syn_class",
-    "pct_syn_prop",
-    "pct_syn_obj",
+    # "pct_syn_classsum",
+    "pct_syn_propsum",
+    "pct_syn_objsum",
+    # "pct_syn_classmax",
+    #"pct_syn_propmax",
+    #"pct_syn_objmax",
     "pct_enum_concept",
     # "pct_enum_ans",
     "pct_ans_score",
@@ -275,15 +310,18 @@ predictor_columns = [
     # "cde_frac",
     # "dec_frac",
     # "que_frac",
-    # "syn_class_frac",
-    # "syn_prop_frac",
-    # "syn_obj_frac",
+    # "syn_classsum_frac",
+    # "syn_propsum_frac",
+    # "syn_objsum_frac",
+    # "syn_classmax_frac",
+    # "syn_propmax_frac",
+    # "syn_objmax_frac",
     # "enum_concept_frac",
     # "enum_ans_frac",
     # "ans_score_frac",
     # "val_score_frac",
-    "n",
-    # "logn"
+    # "n",
+    "logn"
 ]
 
 
@@ -315,7 +353,7 @@ poly = PolynomialFeatures(degree = 2)
 Z_poly= poly.fit_transform(Z[predictor_columns])
 
 # for k in range(1,min(11,len(predictor_columns))):
-for k in range(-4,0,1):
+for k in range(-4,4,1):
     # rfr = RandomForestRegressor(
     #     n_estimators = 30,
     #     max_features = k
@@ -334,19 +372,19 @@ for k in range(-4,0,1):
     print()
 
 rfr = Ridge(
-    alpha=0.01,
+    alpha=0.1,
     fit_intercept = True,
     normalize= True,
-    tol = 0.000001,
+    tol = 0.00001,
     solver='lsqr', # auto, svd, cholesky, lsqr, sparse_cg, sag, saga
 )
 # rfr.fit(Z[predictor_columns].loc[train_vector],(Z['metric2'].loc[train_vector]))
 # print(k)
 # print(rfr.score(Z[predictor_columns].loc[train_vector],(Z['metric2'].loc[train_vector])))
 # print(rfr.score(Z[predictor_columns].loc[test_vector],(Z['metric2'].loc[test_vector])))
-rfr.fit(Z_poly[train_vector],(Z['metric2'].loc[train_vector]))
-print(rfr.score(Z_poly[train_vector],(Z['metric2'].loc[train_vector])))
-print(rfr.score(poly.transform(Z[predictor_columns].loc[test_vector]),(Z['metric2'].loc[test_vector])))
+rfr.fit(Z_poly[train_vector],(Z['metric2_frac'].loc[train_vector]))
+print(rfr.score(Z_poly[train_vector],(Z['metric2_frac'].loc[train_vector])))
+print(rfr.score(poly.transform(Z[predictor_columns].loc[test_vector]),(Z['metric2_frac'].loc[test_vector])))
 print()
 
 model_dict = {

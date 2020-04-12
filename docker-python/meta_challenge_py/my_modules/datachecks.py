@@ -25,14 +25,24 @@ def check_datatype(value,data_type_str):
         'HL7PNv3',
         'HL7TELv3',
         'OBJECT',
-        'Alpha DVG'
+        'Alpha DVG',
+        "xsd:string",
+        "xsd:boolean",
+        "UMLUriv1.0",
+        "UMLOctetv1.0",
+        "UMLCodev1.0",
+        "UMLXMLv1.0",
+        "xsd:dateTime"
     ]:
         check = True
     elif data_type_str in ["CHARACTER",'varchar']:
         if re.fullmatch(r"[0-9]*.{0,1}[0-9]*",value):
-            return False
+            check = False
         else:
-            return True
+            check = True
+    elif data_type_str == "UMLBinaryv1.0":
+        if re.fullmatch(r"[0-1]*",value):
+            check = True
     elif data_type_str in [
         'Integer',
         'HL7INTv3'
@@ -132,7 +142,7 @@ def check_display_format(input_str,display_format):
                 m = 10
             elif m_str == 'nov':
                 m = 11
-            elif m-str == 'dec':
+            elif m_str == 'dec':
                 m = 12
             else:
                 m = 13

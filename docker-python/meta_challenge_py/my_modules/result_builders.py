@@ -14,6 +14,7 @@ def create_result_array(column_class_list,unique_values,g):
                 graphdb = g
             )
         )
+    return results
 
 
 def create_nomatch_result(result_no,unique_values):
@@ -26,7 +27,7 @@ def create_nomatch_result(result_no,unique_values):
                 'name': 'NOMATCH'
             },
             'dataElementConcept':{
-                'id': none,
+                'id': None,
                 'name': "NOMATCH",
                 'conceptCodes': []
             },
@@ -51,7 +52,7 @@ def create_matched_value_domain(cde_id,unique_values,graphdb):
     if len(unique_values) == 0:
         return []
     else:
-        q = "MATCH (n:CDE) WHERE n.CDE_ID = {0:d} RETURN ID(n)"
+        q = "MATCH (n:CDE) WHERE n.CDE_ID = {0:d} RETURN ID(n)".format(cde_id)
         query_result = utils.query_graph(q,graphdb)
         cde_node_indices = query_result.value()
         candidates = []
@@ -71,7 +72,7 @@ def create_matched_result(result_no,cde_id,unique_values,graphdb):
     query_result = utils.query_graph(q,graphdb)
     cde_data = query_result.values()[0]
     conceptcode_query = "MATCH (d:DEC) - [:IS_PROP] - (c:Concept) WHERE d.DEC_ID = {0:d} RETURN c.CODE as ConceptCode \n".format(cde_data[1])
-    conceptcode_query += " MATCH (d:DEC) - [:IS_OBJ] - (c:Concept) WHERE d.DEC_ID = {0:d} RETURN c.CODE as ConceptCode ".format(cde_data[1])
+    conceptcode_query += "UNION ALL MATCH (d:DEC) - [:IS_OBJ] - (c:Concept) WHERE d.DEC_ID = {0:d} RETURN c.CODE as ConceptCode ".format(cde_data[1])
     query_result = utils.query_graph(conceptcode_query,graphdb)
     conceptcodes = query_result.value()
     unique_concepts = list(set(conceptcodes))

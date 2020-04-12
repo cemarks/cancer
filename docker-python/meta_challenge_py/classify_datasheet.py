@@ -5,7 +5,6 @@ import numpy as np
 import pandas as pd
 from neo4j import GraphDatabase
 import json,pickle
-
 from my_modules import data_loader,utils,dataset_builders,result_builders
 
 # DATABASE_URI = "bolt://localhost:7687"
@@ -25,7 +24,7 @@ NOMATCH_MODEL_PATH = '/home/cemarks/Projects/cancer/sandbox/nomatch_model.pkl'
 VALUE_MODEL_PATH = '/home/cemarks/Projects/cancer/sandbox/value_regression.pkl'
 
 # Nomatch model output cutoffs
-NOMATCH_CUTOFFS = [0.75,0.6,0.4]
+NOMATCH_CUTOFFS = [0.4,0.67,1]
 
 def nomatch_prob(column_df,nomatch_model):
     predictor_columns = nomatch_model['predictor_columns']
@@ -60,7 +59,7 @@ def classify_column(column_df,nomatch_model,value_model):
         top3 = [int(appended_df['cde_id'].iloc[0])]
         i = 1
         while (len(top3) < 3) and (i < appended_df.shape[0]):
-            new_top = int(appended_df['cde_id'].iloc[0])
+            new_top = int(appended_df['cde_id'].iloc[i])
             if new_top not in top3:
                 top3.append(new_top)
             i += 1

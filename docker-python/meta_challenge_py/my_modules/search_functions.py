@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+ #!/usr/bin/python3
 
 import pandas as pd
 import numpy as np
@@ -14,61 +14,88 @@ X_FT_STRUCTURE = {
         'column_no': 1,
         'ft_postprocess_params': {}
     },
-    'ftsearch_syn_class':{
+    'syn_classsum':{
         'column_no': 2,
         'ft_postprocess_params': {
             'Synonym':{
-                'query': lambda z: f"MATCH (n) - [:IS_CALLED] - (:Concept) - [:IS_CLASS] - (m:CDE) WHERE ID(n) = {z} RETURN ID(m), m.CDE_ID",
-                'aggregation': lambda old,new: old + new
+                'query': lambda z: f"MATCH (n) - [:IS_CALLED] - (:Concept) - [:IS_CLASS] - (m:CDE) WHERE ID(n) IN [{z}] RETURN DISTINCT ID(n), ID(m), m.CDE_ID",
+                'aggregation': 'sum'
             }
         }
     },
-    'ftsearch_syn_prop':{
+    'syn_propsum':{
         'column_no': 3,
         'ft_postprocess_params': {
             'Synonym':{
-                'query': lambda z: f"MATCH (n) - [:IS_CALLED] - (:Concept) - [:IS_PROP] - (:DEC) - [:IS_CAT] - (m:CDE) WHERE ID(n) = {z} RETURN ID(m), m.CDE_ID",
-                'aggregation': lambda old,new: old + new
+                'query': lambda z: f"MATCH (n) - [:IS_CALLED] - (:Concept) - [:IS_PROP] - (:DEC) - [:IS_CAT] - (m:CDE) WHERE ID(n) IN [{z}] RETURN DISTINCT ID(n), ID(m), m.CDE_ID",
+                'aggregation': 'sum'
             }
         }
     },
-    'ftsearch_syn_obj':{
+    'syn_objsum':{
         'column_no': 4,
         'ft_postprocess_params': {
             'Synonym':{
-                'query': lambda z: f"MATCH (n) - [:IS_CALLED] - (:Concept) - [:IS_OBJ] - (:DEC) - [:IS_CAT] - (m:CDE) WHERE ID(n) = {z} RETURN ID(m), m.CDE_ID",
-                'aggregation': lambda old,new: old + new
+                'query': lambda z: f"MATCH (n) - [:IS_CALLED] - (:Concept) - [:IS_OBJ] - (:DEC) - [:IS_CAT] - (m:CDE) WHERE ID(n) IN [{z}] RETURN DISTINCT ID(n), ID(m), m.CDE_ID",
+                'aggregation': 'sum'
+            }
+        }
+    },
+    'syn_classmax':{
+        'column_no': 5,
+        'ft_postprocess_params': {
+            'Synonym':{
+                'query': lambda z: f"MATCH (n) - [:IS_CALLED] - (:Concept) - [:IS_CLASS] - (m:CDE) WHERE ID(n) IN [{z}] RETURN DISTINCT ID(n), ID(m), m.CDE_ID",
+                'aggregation': 'max'
+            }
+        }
+    },
+    'syn_propmax':{
+        'column_no': 6,
+        'ft_postprocess_params': {
+            'Synonym':{
+                'query': lambda z: f"MATCH (n) - [:IS_CALLED] - (:Concept) - [:IS_PROP] - (:DEC) - [:IS_CAT] - (m:CDE) WHERE ID(n) IN [{z}] RETURN DISTINCT ID(n), ID(m), m.CDE_ID",
+                'aggregation': 'max'
+            }
+        }
+    },
+    'syn_objmax':{
+        'column_no': 7,
+        'ft_postprocess_params': {
+            'Synonym':{
+                'query': lambda z: f"MATCH (n) - [:IS_CALLED] - (:Concept) - [:IS_OBJ] - (:DEC) - [:IS_CAT] - (m:CDE) WHERE ID(n) IN [{z}] RETURN DISTINCT ID(n), ID(m), m.CDE_ID",
+                'aggregation': 'max'
             }
         }
     },
     'ftsearch_cde':{
-        'column_no': 5,
+        'column_no': 8,
         'ft_postprocess_params': {
             'CDE_Name':{
-                'query': lambda z: f"MATCH (n) - [:IS_SHORT] - (m:CDE) WHERE ID(n) = {z} RETURN ID(m), m.CDE_ID",
-                'aggregation': lambda old,new: max([old,new])
+                'query': lambda z: f"MATCH (n) - [:IS_SHORT] - (m:CDE) WHERE ID(n) IN [{z}] RETURN DISTINCT ID(n), ID(m), m.CDE_ID",
+                'aggregation': 'max'
             },
             'CDE':{
-                'query': lambda z: f"MATCH (n:CDE) WHERE ID(n) = {z} RETURN ID(n), n.CDE_ID",
-                'aggregation': lambda old,new: max([old,new])
+                'query': lambda z: f"MATCH (n:CDE) WHERE ID(n) IN [{z}] RETURN DISTINCT ID(n) AS node_id, ID(n), n.CDE_ID",
+                'aggregation': 'max'
             }
         }
     },
     'ftsearch_dec':{
-        'column_no': 6,
+        'column_no': 9,
         'ft_postprocess_params': {
             'DEC':{
-                'query': lambda z: f"MATCH (n) - [:IS_CAT] - (m:CDE) WHERE ID(n) = {z} RETURN ID(m), m.CDE_ID",
-                'aggregation': lambda old,new: old + new
+                'query': lambda z: f"MATCH (n) - [:IS_CAT] - (m:CDE) WHERE ID(n) IN [{z}] RETURN DISTINCT ID(n), ID(m), m.CDE_ID",
+                'aggregation': 'sum'
             }
         }
     },
     'ftsearch_question':{
-        'column_no': 7,
+        'column_no': 10,
         'ft_postprocess_params': {
             'QuestionText':{
-                'query': lambda z: f"MATCH (n) - [:QUESTION] - (m:CDE) WHERE ID(n) = {z} RETURN ID(m), m.CDE_ID",
-                'aggregation': lambda old,new: max([old,new])
+                'query': lambda z: f"MATCH (n) - [:QUESTION] - (m:CDE) WHERE ID(n) IN [{z}] RETURN DISTINCT ID(n), ID(m), m.CDE_ID",
+                'aggregation': 'max'
             }
         }
     }

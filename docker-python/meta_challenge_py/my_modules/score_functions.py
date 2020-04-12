@@ -72,24 +72,27 @@ def score_value_domain(submitted_vd,annotated_res,g):
     query = 'MATCH (n:CDE) WHERE n.CDE_ID = {0:d} RETURN n.VALUE_DOMAIN_TYPE'.format(annotated_cde_id)
     result = utils.query_graph(query,g)
     value = result.value()
-    submitted_observed_values = [i['observedValue'] for i in submitted_vd]
-    enumerated = value[0] == "Enumerated"
-    if enumerated:
-        check_column = 'value'
-    else:
-        check_column = 'conceptCode'
-    if len(annotated_vd) > 0:
-        mismatch_count = 0
-        for annotated_value_dict in annotated_vd:
-            if annotated_value_dict['observedValue'] in submitted_observed_values:
-                submitted_value_dict = submitted_vd[submitted_observed_values.index(annotated_value_dict['observedValue'])]
-                if submitted_value_dict['permissibleValue'][check_column] != annotated_value_dict['permissibleValue'][check_column]:
-                    mismatch_count += 1
-            else:
-                mismatch_count += 1
-        score = 1-mismatch_count / len(annotated_vd)
-    else:
+    if len(value) == 0:
         score = 0
+    else:
+        submitted_observed_values = [i['observedValue'] for i in submitted_vd]
+        enumerated = value[0] == "Enumerated"
+        if enumerated:
+            check_column = 'value'
+        else:
+            check_column = 'conceptCode'
+        if len(annotated_vd) > 0:
+            mismatch_count = 0
+            for annotated_value_dict in annotated_vd:
+                if annotated_value_dict['observedValue'] in submitted_observed_values:
+                    submitted_value_dict = submitted_vd[submitted_observed_values.index(annotated_value_dict['observedValue'])]
+                    if submitted_value_dict['permissibleValue'][check_column] != annotated_value_dict['permissibleValue'][check_column]:
+                        mismatch_count += 1
+                else:
+                    mismatch_count += 1
+            score = 1-mismatch_count / len(annotated_vd)
+        else:
+            score = 0
     return score
 
 def score_result(submitted_result_dict,annotated_result_dict,g):
@@ -102,6 +105,10 @@ def score_result(submitted_result_dict,annotated_result_dict,g):
             metric1 = 0
             metric2 = 0
             metric3 = 0
+    elif annotated_result_dict['dataElement']['name'] == 'NOMATCH':
+        metric1 = 0
+        metric2 = 0
+        metric3 = 0
     else:
         sub_cde_id = get_de_id(submitted_result_dict)
         ann_cde_id = get_de_id(annotated_result_dict)
@@ -131,7 +138,7 @@ def score_submission(submitted_json,annotation_json,g):
     for submitted_col in submitted_json['columns']:
         s = score_column(submitted_col,annotation_json,g)
         scores.append(s)
-    return np.mean(s)
+    return np.mean(scores)
 
 
 

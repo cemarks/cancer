@@ -23,7 +23,7 @@ graphdb = neo4j_connect(
 z = nameindex_query("gender",graphdb)
 
 
-cadsr_df = data_loader.read_file("caDSR-export-20190528-1320.tsv","/home/cemarks/Projects/cancer/data/Data/reference")
+cadsr_df = data_loader.read_file("caDSR-export-20200402-0932.tsv","/home/cemarks/Projects/cancer/data/Data/reference")
 t = data_loader.read_file("Thesaurus.tsv","/home/cemarks/Projects/cancer/data/Data/reference")
 
 

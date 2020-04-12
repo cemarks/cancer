@@ -46,7 +46,7 @@ def classify_single_enum_value(col_value,cde_index,g, SEARCH_CUTOFF = 0):
         # Now we need to choose the best synonym
         synonyms = [i for i in ans_results if i[1] == 'Synonym']
         if len(synonyms) > 0:  #Choose the best based on 1: search score, and 2: stringdist
-            synonyms.sort(key=lambda z: (-z[2],stringdist.levenshtein_norm(z[3],col_value)))
+            synonyms.sort(key=lambda z: (-z[2],stringdist.levenshtein_norm(str(z[3]).lower(),str(col_value).lower())))
             output_dict['permissibleValue']['value'] = str(synonyms[0][3])
             output_dict['permissibleValue']['conceptCode'] = 'ncit:' + str(synonyms[0][4])
         else:

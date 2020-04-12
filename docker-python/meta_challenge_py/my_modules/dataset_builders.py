@@ -64,7 +64,15 @@ DATATYPES = [
     "HL7PNv3",
     "HL7TELv3",
     "OBJECT",
-    "Alpha DVG"
+    "Alpha DVG",
+    "xsd:string",
+    "xsd:boolean",
+    "UMLBinaryv1.0",
+    "UMLUriv1.0",
+    "UMLOctetv1.0",
+    "UMLCodev1.0",
+    "UMLXMLv1.0",
+    "xsd:dateTime"
 ]
 
 
@@ -75,8 +83,11 @@ def build_initial_column_data(
     NAMEINDEX_SEARCH_REQD = 25,
     NAMEINDEX_CDE_REQD = 5,
     MIN_SCORE = 0,
-    FOLLOW_ON_SEARCH_MIN_WORD_LEN = 3
+    FOLLOW_ON_SEARCH_MIN_WORD_LEN = 3,
+    PRINT_STATS = False
 ):
+    import time
+    t = time.time()
     col_name = col_series.name
     search_string = utils.clean_string_for_fulltext(
         utils.lower_upper_split(
@@ -87,18 +98,53 @@ def build_initial_column_data(
             )
         )
     )
-    df = pd.DataFrame(columns = [i for i in search_functions.X_FT_STRUCTURE])
+    df = pd.DataFrame(columns=['index','cde_id'])
     result_types = list(set([j for i in search_functions.X_FT_STRUCTURE for j in search_functions.X_FT_STRUCTURE[i]['ft_postprocess_params']]))
     result_type_dict = {i:[j for j in search_functions.X_FT_STRUCTURE if i in search_functions.X_FT_STRUCTURE[j]['ft_postprocess_params']] for i in result_types}
     search_results = search_functions.nameindex_query_multiple([search_string],g)
+    if PRINT_STATS:
+        print("Initial search complete, {0:d} results".format(len(search_results)))
+        print("{0:1.2f} seconds.\n".format(time.time()-t))
     if (len(search_results) < NAMEINDEX_SEARCH_REQD) or (len([i for i in search_results if i[2][0] in ['CDE','CDE_Name','DEC','QuestionText']]) < NAMEINDEX_CDE_REQD):
-        min_substr_length = max(1/2 * np.sqrt(len(search_string)),FOLLOW_ON_SEARCH_MIN_WORD_LEN)
+        min_substr_length = max(int(np.floor(np.sqrt(len(search_string)* 1./2))),FOLLOW_ON_SEARCH_MIN_WORD_LEN)
         new_search_strings = [(search_string,1)] + search_functions.create_new_search_strings(search_string,g,min_substr_length)
+        if PRINT_STATS:
+            print("New Search Strings created, {0:d} strings".format(len(new_search_strings)))
+            print("{0:1.2f} seconds.\n".format(time.time()-t))
         search_results = search_functions.nameindex_query_multiple([utils.clean_string_for_fulltext(s[0]) for s in new_search_strings],g,[s[1] for s in new_search_strings])
-    for sr in search_results:
-        update_columns = result_type_dict[sr[2][0]]
-        for uc in update_columns:
-            df = search_functions.create_or_update(df,sr,uc,g)
+        if PRINT_STATS:
+            print("Follow-on search complete, {0:d} results".format(len(search_results)))
+            print("{0:1.2f} seconds.\n".format(time.time()-t))
+    for col in search_functions.X_FT_STRUCTURE:
+        search_score_df = pd.DataFrame(columns=['index','cde_id',col])
+        for result_type in search_functions.X_FT_STRUCTURE[col]['ft_postprocess_params']:
+            search_result_filtered = [(i[0],i[1]) for i in search_results if i[2][0] == result_type]
+            search_result_df = pd.DataFrame(search_result_filtered,columns=['node_index',col])
+            q = search_functions.X_FT_STRUCTURE[col]['ft_postprocess_params'][result_type]['query'](",".join([str(node_index_int) for node_index_int in search_result_df['node_index'].tolist()]))
+            agg_type = search_functions.X_FT_STRUCTURE[col]['ft_postprocess_params'][result_type]['aggregation']
+            res = utils.query_graph(q,g)
+            res_df = pd.DataFrame(res.values(),columns = ['node_index','index','cde_id'])
+            scored_results = pd.merge(res_df,search_result_df,how='left',on='node_index')
+            if agg_type == 'max':
+                agg_results = scored_results[['index','cde_id',col]].groupby(by=['index','cde_id'],axis=0,as_index=False).max()
+            elif agg_type == 'sum':
+                agg_results = scored_results[['index','cde_id',col]].groupby(by=['index','cde_id'],axis=0,as_index=False).sum()
+            else:
+                agg_results = pd.DataFrame(columns=['index','cde_id',col])
+            search_score_df = pd.concat([search_score_df,agg_results])
+        if search_score_df.shape[0] > 0:
+            final_agg = search_score_df.groupby(by=['index','cde_id'],axis=0,as_index=False).max()
+            df = pd.merge(df,final_agg,on=['index','cde_id'],how='outer')
+        elif col not in df.columns.tolist():
+            df[col] = 0
+    for col in search_functions.X_FT_STRUCTURE:
+        df.loc[df[col] != df[col],col] = 0
+    ordered_cols = [(col,search_functions.X_FT_STRUCTURE[col]['column_no']) for col in search_functions.X_FT_STRUCTURE]
+    ordered_cols.sort(key = lambda z: z[1])
+    df = df[[o[0] for o in ordered_cols]]
+    if PRINT_STATS:
+        print("Initial df created, {0:d} rows".format(df.shape[0]))
+        print("{0:1.2f} seconds.\n".format(time.time()-t))
     unique_values = utils.col_unique_values(col_series)
     if len(unique_values) > 0:
         unique_values_clean = [utils.clean_string_for_fulltext(i) for i in unique_values]
@@ -121,6 +167,9 @@ def build_initial_column_data(
     else:
         df['enum_concept_search'] = 0
         df['enum_answer_search'] = 0
+    if PRINT_STATS:
+        print("Enum searches complete, {0:d} rows".format(df.shape[0]))
+        print("{0:1.2f} seconds.\n".format(time.time()-t))
     if df.shape[0] > 0:
         answer_count_df = search_functions.create_answer_count_df(df['index'].values,g)
         answer_count_df = pd.merge(df['index'],answer_count_df, on='index',how='outer')
@@ -144,6 +193,9 @@ def build_initial_column_data(
                 }
             )
         df = pd.merge(df,answer_count_df,on='index',how='inner')
+        if PRINT_STATS:
+            print("Answer count complete, {0:d} rows".format(df.shape[0]))
+            print("{0:1.2f} seconds.\n".format(time.time()-t))
         for c in df.columns:
             v = df[c] != df[c]
             if any(v):
@@ -169,6 +221,9 @@ def build_initial_column_data(
             )
         else:
             df['value_score'] = 0
+        if PRINT_STATS:
+            print("Enum scores complete, {0:d} rows".format(df.shape[0]))
+            print("{0:1.2f} seconds.\n".format(time.time()-t))
         df['index'] = df['index'].astype('int')
     return df
 
@@ -181,9 +236,12 @@ def expand_column_X(
         max_cde = max(column_small_X['ftsearch_cde'])
         max_dec = max(column_small_X['ftsearch_dec'])
         max_que = max(column_small_X['ftsearch_question'])
-        max_syn_class = max(column_small_X['ftsearch_syn_class'])
-        max_syn_prop = max(column_small_X['ftsearch_syn_prop'])
-        max_syn_obj = max(column_small_X['ftsearch_syn_obj'])
+        max_syn_classsum = max(column_small_X['syn_classsum'])
+        max_syn_propsum = max(column_small_X['syn_propsum'])
+        max_syn_objsum = max(column_small_X['syn_objsum'])
+        max_syn_classmax = max(column_small_X['syn_classmax'])
+        max_syn_propmax = max(column_small_X['syn_propmax'])
+        max_syn_objmax = max(column_small_X['syn_objmax'])
         max_enum_concept = max(column_small_X['enum_concept_search'])
         max_enum_ans = max(column_small_X['enum_answer_search'])
         max_ans_score = max(column_small_X['answer_count_score'])
@@ -192,9 +250,12 @@ def expand_column_X(
         df['max_cde'] = max_cde
         df['max_dec'] = max_dec
         df['max_que'] = max_que
-        df['max_syn_class'] = max_syn_class
-        df['max_syn_prop'] = max_syn_prop
-        df['max_syn_obj'] = max_syn_obj
+        df['max_syn_classsum'] = max_syn_classsum
+        df['max_syn_propsum'] = max_syn_propsum
+        df['max_syn_objsum'] = max_syn_objsum
+        df['max_syn_classmax'] = max_syn_classmax
+        df['max_syn_propmax'] = max_syn_propmax
+        df['max_syn_objmax'] = max_syn_objmax
         df['max_enum_concept'] = max_enum_concept
         df['max_enum_ans'] = max_enum_ans
         df['max_ans_score'] = max_ans_score
@@ -203,9 +264,12 @@ def expand_column_X(
         df['pct_cde'] = sum(df['ftsearch_cde'] > 0)/n
         df['pct_dec'] = sum(df['ftsearch_dec'] > 0)/n
         df['pct_que'] = sum(df['ftsearch_question'] > 0)/n
-        df['pct_syn_class'] = sum(df['ftsearch_syn_class'] > 0)/n
-        df['pct_syn_prop'] = sum(df['ftsearch_syn_prop'] > 0)/n
-        df['pct_syn_obj'] = sum(df['ftsearch_syn_obj'] > 0)/n
+        df['pct_syn_classsum'] = sum(df['syn_classsum'] > 0)/n
+        df['pct_syn_propsum'] = sum(df['syn_propsum'] > 0)/n
+        df['pct_syn_objsum'] = sum(df['syn_objsum'] > 0)/n
+        df['pct_syn_classmax'] = sum(df['syn_classmax'] > 0)/n
+        df['pct_syn_propmax'] = sum(df['syn_propmax'] > 0)/n
+        df['pct_syn_objmax'] = sum(df['syn_objmax'] > 0)/n
         df['pct_enum_concept'] = sum(df['enum_concept_search'] > 0)/n
         df['pct_enum_ans'] = sum(df['enum_answer_search'] > 0)/n
         df['pct_ans_score'] = sum(df['answer_count_score'] > 0)/n
@@ -213,9 +277,12 @@ def expand_column_X(
         df['cde_frac'] = 0 if max_cde == 0 else df['ftsearch_cde']/max_cde
         df['dec_frac'] = 0 if max_dec == 0 else df['ftsearch_dec']/max_dec
         df['que_frac'] = 0 if max_que == 0 else df['ftsearch_question']/max_que
-        df['syn_class_frac'] = 0 if max_syn_class == 0 else df['ftsearch_syn_class']/max_syn_class
-        df['syn_prop_frac'] = 0 if max_syn_prop == 0 else df['ftsearch_syn_prop']/max_syn_prop
-        df['syn_obj_frac'] = 0 if max_syn_obj == 0 else df['ftsearch_syn_obj']/max_syn_obj
+        df['syn_classsum_frac'] = 0 if max_syn_classsum == 0 else df['syn_classsum']/max_syn_classsum
+        df['syn_propsum_frac'] = 0 if max_syn_propsum == 0 else df['syn_propsum']/max_syn_propsum
+        df['syn_objsum_frac'] = 0 if max_syn_objsum == 0 else df['syn_objsum']/max_syn_objsum
+        df['syn_classmax_frac'] = 0 if max_syn_classmax == 0 else df['syn_classmax']/max_syn_classmax
+        df['syn_propmax_frac'] = 0 if max_syn_propmax == 0 else df['syn_propmax']/max_syn_propmax
+        df['syn_objmax_frac'] = 0 if max_syn_objmax == 0 else df['syn_objmax']/max_syn_objmax
         df['enum_concept_frac'] = 0 if max_enum_concept == 0 else df['enum_concept_search']/max_enum_concept
         df['enum_ans_frac'] = 0 if max_enum_ans == 0 else df['enum_answer_search']/max_enum_ans
         df['ans_score_frac'] = 0 if max_ans_score == 0 else df['answer_count_score']/max_ans_score
