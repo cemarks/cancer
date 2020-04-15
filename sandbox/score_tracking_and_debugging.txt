@@ -1,0 +1,113 @@
+REMBRANDT-leaderboard: 1.59447
+APOLLO-2-leaderboard: 2.87175
+Outcome-Predictors-leaderboard: 3.20278
+ROI-Masks-leaderboard: 2.82850
+
+
+
+0.4,0.5,0.6
+REMBRANDT-leaderboard: 1.33810
+APOLLO-2-leaderboard: 2.10022
+Outcome-Predictors-leaderboard: 2.56576
+ROI-Masks-leaderboard: 2.46860
+
+
+0.5,0.5,0.6
+REMBRANDT-leaderboard: 1.20032
+APOLLO-2-leaderboard: 2.10022
+Outcome-Predictors-leaderboard: 2.49576
+ROI-Masks-leaderboard: 2.24396
+
+0.35,0.45,0.6
+REMBRANDT-leaderboard: 1.42477
+APOLLO-2-leaderboard: 2.13715
+Outcome-Predictors-leaderboard: 2.61676
+ROI-Masks-leaderboard: 2.59903
+
+0.2,0.45,0.6
+REMBRANDT-leaderboard: 1.74699
+APOLLO-2-leaderboard: 2.12957
+Outcome-Predictors-leaderboard: 2.63343
+ROI-Masks-leaderboard: 2.75845
+
+0.25,0.33,0.5
+REMBRANDT-leaderboard: 1.75143
+APOLLO-2-leaderboard: 2.14536
+Outcome-Predictors-leaderboard: 2.71009
+ROI-Masks-leaderboard: 2.93237
+
+
+0.15,0.3,0.5
+REMBRANDT-leaderboard: 1.90699
+APOLLO-2-leaderboard: 2.13273
+Outcome-Predictors-leaderboard: 2.73343
+ROI-Masks-leaderboard: 3.01932
+
+
+import os
+import json
+from my_modules import score_functions,utils
+
+
+DATABASE_URI = "bolt://localhost:7688"
+DATABASE_USER = "neo4j"
+DATABASE_PASSWORD = "loHmjZWp"
+SUBMISSION_DIR = "/home/cemarks/Projects/cancer/mount_folder/output"
+ANNOTATION_DIR = "/home/cemarks/Projects/cancer/data/leaderboard"
+
+submission_files = os.listdir(SUBMISSION_DIR)
+
+g = utils.neo4j_connect(
+    DATABASE_URI,
+    DATABASE_USER,
+    DATABASE_PASSWORD
+)
+
+
+
+sf = "REMBRANDT-leaderboard-Submission.json"
+file_base = sf.rstrip("-Submission.json")
+ANNOTATION_FILE = os.path.join(
+    ANNOTATION_DIR,
+    "Annotated-" + file_base + ".json"
+)
+SUBMISSION_FILE = os.path.join(SUBMISSION_DIR,sf)
+with open(ANNOTATION_FILE,'r') as f:
+    annotation_json = json.load(f)
+
+with open(SUBMISSION_FILE,'r') as f:
+    submission_json = json.load(f)
+
+
+
+col_no = 2
+
+submitted_col = [i for i in submission_json['columns'] if i['columnNumber'] == col_no][0]
+annotated_col = [i for i in annotation_json['columns'] if i['columnNumber'] == col_no][0]
+
+result_no = 1
+
+srd = [i['result'] for i in submitted_col['results'] if i['resultNumber'] == result_no][0]
+ard = annotated_col['results'][0]['result']
+
+
+
+m1,m2,m3 = score_functions.result_metrics(srd,ard,g)
+
+score_functions.score_result(srd,ard,g,result_no)
+
+col_scores = []
+for col in submission_json['columns']:
+    col_scores.append(score_functions.score_column(col,annotation_json,g))
+
+score_functions.score_value_domain(srd['valueDomain'],ard,g)
+
+score = score_functions.score_submission(
+    submission_json,
+    annotation_json,
+    graphDB
+)
+print(sf)
+print(score)
+print()
+

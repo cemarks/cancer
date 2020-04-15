@@ -6,43 +6,36 @@ import pandas as pd
 from neo4j import GraphDatabase
 import json,pickle
 from my_modules import data_loader,utils,dataset_builders,result_builders
+from my_modules import learning_models
 
-# DATABASE_URI = "bolt://localhost:7687"
-# DATABASE_USER = "neo4j"
-# DATABASE_PASSWORD = "loHmjZWp"
-# INPUT_FOLDER = "/input"
-# OUTPUT_FOLDER = "/output"
-# NOMATCH_MODEL_PATH = '/home/cemarks/Projects/cancer/sandbox/nomatch_mod.pkl'
-# VALUE_MODEL_PATH = '/home/cemarks/Projects/cancer/sandbox/value_regression.pkl'
-
-DATABASE_URI = "bolt://localhost:7688"
+DATABASE_URI = "bolt://127.0.0.1:7687"
 DATABASE_USER = "neo4j"
 DATABASE_PASSWORD = "loHmjZWp"
-INPUT_FOLDER = "/home/cemarks/Projects/cancer/mount_folder/input"
-OUTPUT_FOLDER = "/home/cemarks/Projects/cancer/mount_folder/output"
-NOMATCH_MODEL_PATH = '/home/cemarks/Projects/cancer/sandbox/nomatch_model.pkl'
-VALUE_MODEL_PATH = '/home/cemarks/Projects/cancer/sandbox/value_regression.pkl'
+INPUT_FOLDER = "/input"
+OUTPUT_FOLDER = "/output"
+NOMATCH_MODEL_PATH = '/models/nomatch_model.pkl'
+VALUE_MODEL_PATH = '/models/value_regression.pkl'
+
+# DATABASE_URI = "bolt://localhost:7688"
+# DATABASE_USER = "neo4j"
+# DATABASE_PASSWORD = "loHmjZWp"
+# INPUT_FOLDER = "/home/cemarks/Projects/cancer/mount_folder/input"
+# OUTPUT_FOLDER = "/home/cemarks/Projects/cancer/mount_folder/output"
+# NOMATCH_MODEL_PATH = '/home/cemarks/Projects/cancer/sandbox/nomatch_model.pkl'
+# VALUE_MODEL_PATH = '/home/cemarks/Projects/cancer/sandbox/value_regression.pkl'
 
 # Nomatch model output cutoffs
-NOMATCH_CUTOFFS = [0.4,0.67,1]
+NOMATCH_CUTOFFS = [0.15,0.3,0.5]
 
 def nomatch_prob(column_df,nomatch_model):
-    predictor_columns = nomatch_model['predictor_columns']
-    if 'transform' in nomatch_model:
-        X = nomatch_model['transform'].transform(column_df[predictor_columns].iloc[0])
-    else:
-        X = column_df[predictor_columns].iloc[0]
-    X_reshape = X.values.reshape(1,-1)
+    X = learning_models.lr_transform(column_df.iloc[0:1])
+    # X_reshape = X.reshape(1,-1)
     predictor_model = nomatch_model['model']
-    p = predictor_model.predict_proba(X_reshape)
+    p = predictor_model.predict_proba(X)
     return(p[0][1])
 
 def estimate_value(column_df,value_model):
-    predictor_columns = value_model['predictor_columns']
-    if 'transform' in value_model:
-        X = value_model['transform'].transform(column_df[predictor_columns])
-    else:
-        X = column_df[predictor_columns].values
+    X = learning_models.rr_transform(column_df)
     predictor_model = value_model['model']
     Y = predictor_model.predict(X)
     return(Y)
@@ -54,22 +47,16 @@ def classify_column(column_df,nomatch_model,value_model):
         value_ests = estimate_value(column_df,value_model)
         appended_df = column_df.copy()
         appended_df['value_est'] = value_ests
-        value_est_index = appended_df.columns.tolist().index('value_est')
         appended_df.sort_values(by='value_est',axis=0, ascending=False, inplace=True)
-        top3 = [int(appended_df['cde_id'].iloc[0])]
-        i = 1
-        while (len(top3) < 3) and (i < appended_df.shape[0]):
-            new_top = int(appended_df['cde_id'].iloc[i])
-            if new_top not in top3:
-                top3.append(new_top)
-            i += 1
-        if nm_prob > NOMATCH_CUTOFFS[0]:
-            classification = ['nomatch'] + top3[0:2]
-        elif nm_prob > NOMATCH_CUTOFFS[1]:
-            classification = [top3[0]] + ['nomatch'] + top3[1:2]
-        elif nm_prob > NOMATCH_CUTOFFS[2]:
+        top3 = appended_df['cde_id'].astype('int').tolist()[0:3]
+        if nm_prob < NOMATCH_CUTOFFS[0]:
+            classification = top3
+        elif nm_prob < NOMATCH_CUTOFFS[1]:
             classification = top3[0:2] + ['nomatch']
-        else: classification = top3
+        elif nm_prob < NOMATCH_CUTOFFS[2]:
+            classification = [top3[0]] + ['nomatch'] + top3[1:2]
+        else: 
+            classification = ['nomatch'] + top3[0:2]
     else:
         classification = ['nomatch']
     return classification
@@ -106,6 +93,7 @@ def classify_columns(data_sheet,g,nomatch_model,value_model):
 
 
 if __name__=="__main__":
+    import time
     graphDB = utils.neo4j_connect(
         DATABASE_URI,
         DATABASE_USER,
@@ -116,7 +104,7 @@ if __name__=="__main__":
     with open(VALUE_MODEL_PATH,'rb') as f:
         value_model = pickle.load(f)
     if len(sys.argv) > 1:
-        data_files = [sys.argv[1]]
+        data_files = [sys.argv[1].lstrip(INPUT_FOLDER + "/")]
     else:
         data_files = data_loader.list_data_files(DATA_DIR = INPUT_FOLDER)
     for data_file in data_files:

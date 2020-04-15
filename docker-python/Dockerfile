@@ -21,9 +21,13 @@ ENV PYTHONPATH=/meta_challenge_py
 
 COPY meta_challenge_py /meta_challenge_py
 COPY exec.sh /
+COPY models /models
 
 # Make neo4j accessible from outside container
-RUN sed -i "s/#dbms.connectors.default_listen_address=0.0.0.0/dbms.connectors.default_listen_address=0.0.0.0/" /neo4j/conf/neo4j.conf
+# RUN sed -i "s/# dbms.connectors.default_listen_address=0.0.0.0/dbms.connectors.default_listen_address=0.0.0.0/" /neo4j/conf/neo4j.conf
+
 
 ENTRYPOINT ["sh","/exec.sh"]
+
+# CMD sh
 

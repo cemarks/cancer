@@ -12,7 +12,7 @@ from random import sample
 
 os.chdir("/home/cemarks/Projects/cancer/sandbox")
 
-with open("expanded_training_X.pkl",'rb') as f:
+with open("/home/cemarks/Projects/cancer/sandbox/expanded_training_X.pkl",'rb') as f:
     X = pickle.load(f)
 
 
@@ -53,6 +53,7 @@ stat_columns = [
     "max_enum_ans",
     "max_ans_score",
     "max_val_score",
+    "max_secondary_search",
     "pct_cde",
     "pct_dec",
     "pct_que",
@@ -66,6 +67,7 @@ stat_columns = [
     "pct_enum_ans",
     "pct_ans_score",
     "pct_val_score",
+    "pct_secondary_search",
     "logn",
     "n",
     "metric2_max"
@@ -76,56 +78,70 @@ for i in Y['DB'].unique():
 
 
 
-predictor_columns = [
-    "max_cde",
-    "max_dec",
-    "max_que",
-    # "max_syn_classsum",
-    # "max_syn_propsum",
-    # "max_syn_objsum",
-    # "max_syn_classmax",
-    "max_syn_propmax",
-    # "max_syn_objmax",
-    # "max_enum_concept",
-    # "max_enum_ans",
-    # "max_ans_score",
-    # "max_val_score",
-    # "pct_cde",
-    # "pct_dec",
-    # "pct_que",
-    # "pct_syn_classsum",
-    # "pct_syn_propsum",
-    # "pct_syn_objsum",
-    # "pct_syn_classmax",
-    # "pct_syn_propmax",
-    # "pct_syn_objmax",
-    # "pct_enum_concept",
-    # "pct_enum_ans",
-    # "pct_ans_score",
-    # "pct_val_score",
-    # "n",
-    "logn"
-]
-
-
 D = pd.DataFrame(z)
 D['Y'] = (D['metric2_max'] == 0).astype('int') #These are nomatch rows.
-D['logn'] = np.log(D['n'])
 
-kf = KFold(n_splits=10,shuffle=True)
-INDS = kf.split(D)
+# D['c1'] = D['pct_secondary_search'].multiply(D['max_syn_propsum'])
+# predictor_columns.append('c1')
+# D['c2'] = D['pct_secondary_search'].multiply(D['max_syn_propsum'])
+# predictor_columns.append('c2')
+# D['c3'] = D['pct_secondary_search'].multiply(D['max_enum_ans'])
+# predictor_columns.append('c3')
+# D['c3'] = D['pct_secondary_search'].multiply(D['n'])
+# predictor_columns.append('c3')
 
-o = []
-ot = []
+def lr_transform(x):
+    predictor_columns = [
+        "max_cde",
+        "max_dec",
+        "max_que",
+        # "max_syn_classsum",
+        # "max_syn_propsum",
+        # "max_syn_objsum",
+        # "max_syn_classmax",
+        "max_syn_propmax",
+        # "max_syn_objmax",
+        # "max_enum_concept",
+        # "max_enum_ans",
+        # "max_ans_score",
+        # "max_val_score",
+        # "max_secondary_search",
+        # "pct_cde",
+        # "pct_dec",
+        # "pct_que",
+        # "pct_syn_classsum",
+        # "pct_syn_propsum",
+        # "pct_syn_objsum",
+        # "pct_syn_classmax",
+        # "pct_syn_propmax",
+        # "pct_syn_objmax",
+        # "pct_enum_concept",
+        # "pct_enum_ans",
+        # "pct_ans_score",
+        # "pct_val_score",
+        # "pct_secondary_search",
+        # "n",
+        "logn"
+    ]
+    x_copy = x.copy()
+    x_copy['c1'] = x['pct_secondary_search'].multiply(x['max_enum_ans'])
+    x_copy['c2'] = x['pct_secondary_search'].multiply(x['max_val_score'])
+    predictor_columns = predictor_columns + ['c1','c2']
+    return(x_copy[predictor_columns].values)
+
 
 # poly = PolynomialFeatures(degree=2)
 # X_poly = poly.fit_transform(D[predictor_columns])
+kf = KFold(n_splits=10,shuffle=True)
+INDS = kf.split(D)
+o = []
+ot = []
 
 for train_index,test_index in INDS:
-    XX = D[predictor_columns].iloc[train_index] 
-    XT = D[predictor_columns].iloc[test_index] 
-    # XX = X_poly[train_index]
-    # XT = X_poly[test_index]
+    # XX = D[predictor_columns].iloc[train_index] 
+    # XT = D[predictor_columns].iloc[test_index] 
+    XX = lr_transform(D.iloc[train_index])
+    XT = lr_transform(D.iloc[test_index])
     YY = D['Y'].iloc[train_index]
     YT = D['Y'].iloc[test_index]
     s = []
@@ -169,8 +185,8 @@ best_model = LogisticRegression(
 test_inds = sample(range(D.shape[0]),10)
 tng_inds = [i for i in range(D.shape[0]) if i not in test_inds]
 
-XX = D[predictor_columns].iloc[tng_inds]
-XT = D[predictor_columns].iloc[test_inds]
+XX = lr_transform(D.iloc[tng_inds])
+XT = lr_transform(D.iloc[test_inds])
 
 YY = D['Y'].iloc[tng_inds]
 YT = D['Y'].iloc[test_inds]
@@ -251,7 +267,6 @@ plt.clf()
 plt.close()
 
 model_dict = {
-    'predictor_columns': predictor_columns,
     'model': best_model
 }
 
@@ -267,62 +282,69 @@ with open('nomatch_model.pkl', 'wb') as f:
 
 Z = Y.loc[Y['metric4']==1]
 
-predictor_columns = [
-    "ftsearch_cde",
-    "ftsearch_dec",
-    # "syn_classsum",
-    "syn_propsum",
-    # "syn_objsum",
-    # "syn_classmax",
-    # "syn_propmax",
-    # "syn_objmax",
-    "ftsearch_question",
-    "enum_concept_search",
-    "enum_answer_search",
-    "answer_count_score",
-    "value_score",
-    "max_cde",
-    "max_dec",
-    "max_que",
-    # "max_syn_classsum",
-    "max_syn_propsum",
-    # "max_syn_objsum",
-    # "max_syn_classmax",
-    # "max_syn_propmax",
-    # "max_syn_objmax",
-    "max_enum_concept",
-    # "max_enum_ans",
-    "max_ans_score",
-    "max_val_score",
-    "pct_cde",
-    "pct_dec",
-    # "pct_que",
-    # "pct_syn_classsum",
-    "pct_syn_propsum",
-    "pct_syn_objsum",
-    # "pct_syn_classmax",
-    #"pct_syn_propmax",
-    #"pct_syn_objmax",
-    "pct_enum_concept",
-    # "pct_enum_ans",
-    "pct_ans_score",
-    "pct_val_score",
-    # "cde_frac",
-    # "dec_frac",
-    # "que_frac",
-    # "syn_classsum_frac",
-    # "syn_propsum_frac",
-    # "syn_objsum_frac",
-    # "syn_classmax_frac",
-    # "syn_propmax_frac",
-    # "syn_objmax_frac",
-    # "enum_concept_frac",
-    # "enum_ans_frac",
-    # "ans_score_frac",
-    # "val_score_frac",
-    # "n",
-    "logn"
-]
+def rr_transform(x):
+    predictor_columns = [
+        "secondary_search",
+        # "ftsearch_cde",
+        "ftsearch_dec",
+        # "syn_classsum",
+        "syn_propsum",
+        # "syn_objsum",
+        # "syn_classmax",
+        # "syn_propmax",
+        # "syn_objmax",
+        # "ftsearch_question",
+        # "enum_concept_search",
+        # "enum_answer_search",
+        # "answer_count_score",
+        "value_score",
+        # "max_cde",
+        # "max_dec",
+        # "max_que",
+        # "max_syn_classsum",
+        # "max_syn_propsum",
+        # "max_syn_objsum",
+        # "max_syn_classmax",
+        # "max_syn_propmax",
+        # "max_syn_objmax",
+        # "max_enum_concept",
+        # "max_enum_ans",
+        # "max_ans_score",
+        # "max_val_score",
+        # "max_secondary_search",
+        # "pct_cde",
+        # "pct_dec",
+        # "pct_que",
+        # "pct_syn_classsum",
+        # "pct_syn_propsum",
+        "pct_syn_objsum",
+        # "pct_syn_classmax",
+        # "pct_syn_propmax",
+        #"pct_syn_objmax",
+        # "pct_enum_concept",
+        # "pct_enum_ans",
+        # "pct_ans_score",
+        # "pct_val_score",
+        "pct_secondary_search",
+        "cde_frac",
+        # "dec_frac",
+        "que_frac",
+        # "syn_classsum_frac",
+        # "syn_propsum_frac",
+        # "syn_objsum_frac",
+        # "syn_classmax_frac",
+        "syn_propmax_frac",
+        # "syn_objmax_frac",
+        "enum_concept_frac",
+        # "enum_ans_frac",
+        # "ans_score_frac",
+        # "val_score_frac",
+        "n",
+        "logn"
+    ]
+    poly = PolynomialFeatures(degree = 2)
+    Z_poly = poly.fit_transform(x[predictor_columns])
+    return Z_poly
 
 
 o=[]
@@ -349,8 +371,13 @@ test_vector.index = Z.index
 for t,i in enumerate(test_inds):
     test_vector = test_vector | ((Z['DB']==o[i][0]) & (Z['col_no']==o[i][1]))
 
-poly = PolynomialFeatures(degree = 2)
-Z_poly= poly.fit_transform(Z[predictor_columns])
+# Z_poly= poly.fit_transform(Z[predictor_columns])
+
+Z_poly = rr_transform(Z)
+Z_train = Z_poly[train_vector]
+Z_test = Z_poly[test_vector]
+
+YY = Z['metric2_frac'].pow(2).values
 
 # for k in range(1,min(11,len(predictor_columns))):
 for k in range(-4,4,1):
@@ -365,10 +392,10 @@ for k in range(-4,4,1):
         tol = 0.00001,
         solver='lsqr', # auto, svd, cholesky, lsqr, sparse_cg, sag, saga
     )
-    rfr.fit(Z_poly[train_vector],(Z['metric2_frac'].loc[train_vector]))
+    rfr.fit(Z_train,YY[train_vector])
     print(k)
-    print(rfr.score(Z_poly[train_vector],(Z['metric2_frac'].loc[train_vector])))
-    print(rfr.score(poly.transform(Z[predictor_columns].loc[test_vector]),(Z['metric2_frac'].loc[test_vector])))
+    print(rfr.score(Z_train,YY[train_vector]))
+    print(rfr.score(Z_test,YY[test_vector]))
     print()
 
 rfr = Ridge(
@@ -382,21 +409,22 @@ rfr = Ridge(
 # print(k)
 # print(rfr.score(Z[predictor_columns].loc[train_vector],(Z['metric2'].loc[train_vector])))
 # print(rfr.score(Z[predictor_columns].loc[test_vector],(Z['metric2'].loc[test_vector])))
-rfr.fit(Z_poly[train_vector],(Z['metric2_frac'].loc[train_vector]))
-print(rfr.score(Z_poly[train_vector],(Z['metric2_frac'].loc[train_vector])))
-print(rfr.score(poly.transform(Z[predictor_columns].loc[test_vector]),(Z['metric2_frac'].loc[test_vector])))
+rfr.fit(Z_train,YY[train_vector])
+print(rfr.score(Z_train,YY[train_vector]))
+print(rfr.score(Z_test,YY[test_vector]))
 print()
 
+
+
+
 model_dict = {
-    'predictor_columns': predictor_columns,
-    'model': rfr,
-    'transform': poly
+    'model': rfr
 }
 
 with open('value_regression.pkl', 'wb') as f:
     pickle.dump(model_dict,f)
 
-Z['metric2_predict'] = rfr.predict(poly.transform(Z[predictor_columns]))
+Z['metric2_predict'] = rfr.predict(Z_poly)
 
 for i in range(12):
     o2 = []

@@ -78,9 +78,9 @@ def score_value_domain(submitted_vd,annotated_res,g):
         submitted_observed_values = [i['observedValue'] for i in submitted_vd]
         enumerated = value[0] == "Enumerated"
         if enumerated:
-            check_column = 'value'
-        else:
             check_column = 'conceptCode'
+        else:
+            check_column = 'value'
         if len(annotated_vd) > 0:
             mismatch_count = 0
             for annotated_value_dict in annotated_vd:
@@ -95,7 +95,7 @@ def score_value_domain(submitted_vd,annotated_res,g):
             score = 0
     return score
 
-def score_result(submitted_result_dict,annotated_result_dict,g):
+def result_metrics(submitted_result_dict,annotated_result_dict,g):
     if submitted_result_dict['dataElement']['name'] == 'NOMATCH':
         if annotated_result_dict['dataElement']['name'] == 'NOMATCH':
             metric1 = 1
@@ -121,16 +121,25 @@ def score_result(submitted_result_dict,annotated_result_dict,g):
     return metric1,metric2,metric3
 
 
+def calculate_bonus(m1,m2,m3,resultNumber):
+    bonus = (2-resultNumber)*np.mean([m1,m2,m3])
+    return bonus
+
+def score_result(submitted_result,annotated_result_dict,g,resultNumber):
+    de_score,dec_score,vd_score = result_metrics(submitted_result,annotated_result_dict,g)
+    initial_score = WEIGHTS['de_wt'] * de_score + WEIGHTS['dec_wt'] * dec_score + WEIGHTS['vd_wt'] * vd_score
+    bonus = calculate_bonus(de_score,dec_score,vd_score,resultNumber)
+    score = initial_score + bonus
+    return score
+
 def score_column(submitted_col_dict,annotation_json,g):
     column_no = submitted_col_dict['columnNumber']
     annotated_result_dict = get_col_result_annotation(annotation_json,column_no)
     col_results = submitted_col_dict['results']
     scores = []
     for r in col_results:
-        de_score,dec_score,vd_score = score_result(r['result'],annotated_result_dict,g)
-        initial_score = WEIGHTS['de_wt'] * de_score + WEIGHTS['dec_wt'] * dec_score + WEIGHTS['vd_wt'] * vd_score
-        additional = (WEIGHTS['top_wt'] + 1 - r['resultNumber']) * np.mean([de_score,dec_score,vd_score])
-        scores.append(initial_score + additional)
+        score = score_result(r['result'],annotated_result_dict,g,r['resultNumber'])
+        scores.append(score)
     return(np.max(scores))
 
 def score_submission(submitted_json,annotation_json,g):
@@ -139,12 +148,6 @@ def score_submission(submitted_json,annotation_json,g):
         s = score_column(submitted_col,annotation_json,g)
         scores.append(s)
     return np.mean(scores)
-
-
-
-
-
-
 
 
 def jaccard_dist(list_1,list_2):
@@ -162,6 +165,3 @@ def jaccard_dist(list_1,list_2):
         out = l_intersect / l_union
     return out
 
-
-
-# def metric1(node_ind,...)

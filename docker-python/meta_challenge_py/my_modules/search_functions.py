@@ -14,8 +14,12 @@ X_FT_STRUCTURE = {
         'column_no': 1,
         'ft_postprocess_params': {}
     },
-    'syn_classsum':{
+    'secondary_search':{
         'column_no': 2,
+        'ft_postprocess_params':{}
+    },
+    'syn_classsum':{
+        'column_no': 3,
         'ft_postprocess_params': {
             'Synonym':{
                 'query': lambda z: f"MATCH (n) - [:IS_CALLED] - (:Concept) - [:IS_CLASS] - (m:CDE) WHERE ID(n) IN [{z}] RETURN DISTINCT ID(n), ID(m), m.CDE_ID",
@@ -24,7 +28,7 @@ X_FT_STRUCTURE = {
         }
     },
     'syn_propsum':{
-        'column_no': 3,
+        'column_no': 4,
         'ft_postprocess_params': {
             'Synonym':{
                 'query': lambda z: f"MATCH (n) - [:IS_CALLED] - (:Concept) - [:IS_PROP] - (:DEC) - [:IS_CAT] - (m:CDE) WHERE ID(n) IN [{z}] RETURN DISTINCT ID(n), ID(m), m.CDE_ID",
@@ -33,7 +37,7 @@ X_FT_STRUCTURE = {
         }
     },
     'syn_objsum':{
-        'column_no': 4,
+        'column_no': 5,
         'ft_postprocess_params': {
             'Synonym':{
                 'query': lambda z: f"MATCH (n) - [:IS_CALLED] - (:Concept) - [:IS_OBJ] - (:DEC) - [:IS_CAT] - (m:CDE) WHERE ID(n) IN [{z}] RETURN DISTINCT ID(n), ID(m), m.CDE_ID",
@@ -42,7 +46,7 @@ X_FT_STRUCTURE = {
         }
     },
     'syn_classmax':{
-        'column_no': 5,
+        'column_no': 6,
         'ft_postprocess_params': {
             'Synonym':{
                 'query': lambda z: f"MATCH (n) - [:IS_CALLED] - (:Concept) - [:IS_CLASS] - (m:CDE) WHERE ID(n) IN [{z}] RETURN DISTINCT ID(n), ID(m), m.CDE_ID",
@@ -51,7 +55,7 @@ X_FT_STRUCTURE = {
         }
     },
     'syn_propmax':{
-        'column_no': 6,
+        'column_no': 7,
         'ft_postprocess_params': {
             'Synonym':{
                 'query': lambda z: f"MATCH (n) - [:IS_CALLED] - (:Concept) - [:IS_PROP] - (:DEC) - [:IS_CAT] - (m:CDE) WHERE ID(n) IN [{z}] RETURN DISTINCT ID(n), ID(m), m.CDE_ID",
@@ -60,7 +64,7 @@ X_FT_STRUCTURE = {
         }
     },
     'syn_objmax':{
-        'column_no': 7,
+        'column_no': 8,
         'ft_postprocess_params': {
             'Synonym':{
                 'query': lambda z: f"MATCH (n) - [:IS_CALLED] - (:Concept) - [:IS_OBJ] - (:DEC) - [:IS_CAT] - (m:CDE) WHERE ID(n) IN [{z}] RETURN DISTINCT ID(n), ID(m), m.CDE_ID",
@@ -69,7 +73,7 @@ X_FT_STRUCTURE = {
         }
     },
     'ftsearch_cde':{
-        'column_no': 8,
+        'column_no': 9,
         'ft_postprocess_params': {
             'CDE_Name':{
                 'query': lambda z: f"MATCH (n) - [:IS_SHORT] - (m:CDE) WHERE ID(n) IN [{z}] RETURN DISTINCT ID(n), ID(m), m.CDE_ID",
@@ -82,7 +86,7 @@ X_FT_STRUCTURE = {
         }
     },
     'ftsearch_dec':{
-        'column_no': 9,
+        'column_no': 10,
         'ft_postprocess_params': {
             'DEC':{
                 'query': lambda z: f"MATCH (n) - [:IS_CAT] - (m:CDE) WHERE ID(n) IN [{z}] RETURN DISTINCT ID(n), ID(m), m.CDE_ID",
@@ -91,7 +95,7 @@ X_FT_STRUCTURE = {
         }
     },
     'ftsearch_question':{
-        'column_no': 10,
+        'column_no': 11,
         'ft_postprocess_params': {
             'QuestionText':{
                 'query': lambda z: f"MATCH (n) - [:QUESTION] - (m:CDE) WHERE ID(n) IN [{z}] RETURN DISTINCT ID(n), ID(m), m.CDE_ID",
@@ -309,15 +313,20 @@ def nans_vs_nexp(n_ans,n_exp):
 
 
 def create_answer_count_df(cde_indices,g):
-    q = "MATCH (n:CDE) - [:PERMITS] - (m:Answer) WHERE ID(n) IN [{0:s}] RETURN ID(n),COUNT(*)".format(",".join(cde_indices.astype('int').astype('str')))
-    result = utils.query_graph(q,g)
-    answer_counts = result.values()
-    q2 = "MATCH (n:CDE) WHERE ID(n) IN [{0:s}] AND n.DATATYPE = 'BOOLEAN' RETURN ID(n),2".format(",".join(cde_indices.astype('int').astype('str')))
-    result = utils.query_graph(q2,g)
-    answer_counts2 = result.values()
-    n1 = [i[0] for i in answer_counts]
-    answer_counts2 = [i for i in answer_counts2 if i[0] not in n1]
-    answer_count_df = pd.DataFrame(answer_counts + answer_counts2,columns=['index','answer_count'])
+    answer_count_df = pd.DataFrame(columns=['index','answer_count'])
+    CDE_INDEX = 0
+    while CDE_INDEX < len(cde_indices):
+        cde_index_batch = cde_indices[CDE_INDEX:min((CDE_INDEX+1000),len(cde_indices))]
+        q = "MATCH (n:CDE) - [:PERMITS] - (m:Answer) WHERE ID(n) IN [{0:s}] RETURN ID(n),COUNT(*)".format(",".join(cde_index_batch.astype('int').astype('str')))
+        result = utils.query_graph(q,g)
+        answer_counts = result.values()
+        q2 = "MATCH (n:CDE) WHERE ID(n) IN [{0:s}] AND n.DATATYPE = 'BOOLEAN' RETURN ID(n),2".format(",".join(cde_index_batch.astype('int').astype('str')))
+        result = utils.query_graph(q2,g)
+        answer_counts2 = result.values()
+        n1 = [i[0] for i in answer_counts]
+        answer_counts2 = [i for i in answer_counts2 if i[0] not in n1]
+        answer_count_df = pd.concat((answer_count_df,pd.DataFrame(answer_counts + answer_counts2,columns=['index','answer_count'])))
+        CDE_INDEX+=1000
     return answer_count_df
 
 

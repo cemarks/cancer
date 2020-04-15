@@ -105,16 +105,6 @@ def build_initial_column_data(
     if PRINT_STATS:
         print("Initial search complete, {0:d} results".format(len(search_results)))
         print("{0:1.2f} seconds.\n".format(time.time()-t))
-    if (len(search_results) < NAMEINDEX_SEARCH_REQD) or (len([i for i in search_results if i[2][0] in ['CDE','CDE_Name','DEC','QuestionText']]) < NAMEINDEX_CDE_REQD):
-        min_substr_length = max(int(np.floor(np.sqrt(len(search_string)* 1./2))),FOLLOW_ON_SEARCH_MIN_WORD_LEN)
-        new_search_strings = [(search_string,1)] + search_functions.create_new_search_strings(search_string,g,min_substr_length)
-        if PRINT_STATS:
-            print("New Search Strings created, {0:d} strings".format(len(new_search_strings)))
-            print("{0:1.2f} seconds.\n".format(time.time()-t))
-        search_results = search_functions.nameindex_query_multiple([utils.clean_string_for_fulltext(s[0]) for s in new_search_strings],g,[s[1] for s in new_search_strings])
-        if PRINT_STATS:
-            print("Follow-on search complete, {0:d} results".format(len(search_results)))
-            print("{0:1.2f} seconds.\n".format(time.time()-t))
     for col in search_functions.X_FT_STRUCTURE:
         search_score_df = pd.DataFrame(columns=['index','cde_id',col])
         for result_type in search_functions.X_FT_STRUCTURE[col]['ft_postprocess_params']:
@@ -137,11 +127,53 @@ def build_initial_column_data(
             df = pd.merge(df,final_agg,on=['index','cde_id'],how='outer')
         elif col not in df.columns.tolist():
             df[col] = 0
+    df['secondary_search'] = [0] * df.shape[0]
     for col in search_functions.X_FT_STRUCTURE:
         df.loc[df[col] != df[col],col] = 0
     ordered_cols = [(col,search_functions.X_FT_STRUCTURE[col]['column_no']) for col in search_functions.X_FT_STRUCTURE]
     ordered_cols.sort(key = lambda z: z[1])
     df = df[[o[0] for o in ordered_cols]]
+    if (len(search_results) < NAMEINDEX_SEARCH_REQD) or (len([i for i in search_results if i[2][0] in ['CDE','CDE_Name','DEC','QuestionText']]) < NAMEINDEX_CDE_REQD):
+        new_df = pd.DataFrame(columns=['index','cde_id'])
+        min_substr_length = max(int(np.floor(np.sqrt(len(search_string)* 1./2))),FOLLOW_ON_SEARCH_MIN_WORD_LEN)
+        new_search_strings = [(search_string,1)] + search_functions.create_new_search_strings(search_string,g,min_substr_length)
+        if PRINT_STATS:
+            print("New Search Strings created, {0:d} strings".format(len(new_search_strings)))
+            print("{0:1.2f} seconds.\n".format(time.time()-t))
+        new_search_results = search_functions.nameindex_query_multiple([utils.clean_string_for_fulltext(s[0]) for s in new_search_strings],g,[s[1] for s in new_search_strings])
+        if PRINT_STATS:
+            print("Follow-on search complete, {0:d} results".format(len(new_search_results)))
+            print("{0:1.2f} seconds.\n".format(time.time()-t))
+        for col in search_functions.X_FT_STRUCTURE:
+            search_score_df = pd.DataFrame(columns=['index','cde_id',col])
+            for result_type in search_functions.X_FT_STRUCTURE[col]['ft_postprocess_params']:
+                search_result_filtered = [(i[0],i[1]) for i in new_search_results if i[2][0] == result_type]
+                search_result_df = pd.DataFrame(search_result_filtered,columns=['node_index',col])
+                q = search_functions.X_FT_STRUCTURE[col]['ft_postprocess_params'][result_type]['query'](",".join([str(node_index_int) for node_index_int in search_result_df['node_index'].tolist()]))
+                agg_type = search_functions.X_FT_STRUCTURE[col]['ft_postprocess_params'][result_type]['aggregation']
+                res = utils.query_graph(q,g)
+                res_df = pd.DataFrame(res.values(),columns = ['node_index','index','cde_id'])
+                scored_results = pd.merge(res_df,search_result_df,how='left',on='node_index')
+                if agg_type == 'max':
+                    agg_results = scored_results[['index','cde_id',col]].groupby(by=['index','cde_id'],axis=0,as_index=False).max()
+                elif agg_type == 'sum':
+                    agg_results = scored_results[['index','cde_id',col]].groupby(by=['index','cde_id'],axis=0,as_index=False).sum()
+                else:
+                    agg_results = pd.DataFrame(columns=['index','cde_id',col])
+                search_score_df = pd.concat([search_score_df,agg_results])
+            if search_score_df.shape[0] > 0:
+                final_agg = search_score_df.groupby(by=['index','cde_id'],axis=0,as_index=False).max()
+                new_df = pd.merge(new_df,final_agg,on=['index','cde_id'],how='outer')
+            elif col not in new_df.columns.tolist():
+                    new_df[col] = 0
+        new_df['secondary_search'] = [1] * new_df.shape[0]
+        for col in search_functions.X_FT_STRUCTURE:
+            new_df.loc[new_df[col] != new_df[col],col] = 0
+        ordered_cols = [(col,search_functions.X_FT_STRUCTURE[col]['column_no']) for col in search_functions.X_FT_STRUCTURE]
+        ordered_cols.sort(key = lambda z: z[1])
+        new_df = new_df[[o[0] for o in ordered_cols]]
+        new_df = new_df[~new_df['index'].isin(df['index'])]
+        df = pd.concat([df,new_df])
     if PRINT_STATS:
         print("Initial df created, {0:d} rows".format(df.shape[0]))
         print("{0:1.2f} seconds.\n".format(time.time()-t))
@@ -225,6 +257,8 @@ def build_initial_column_data(
             print("Enum scores complete, {0:d} rows".format(df.shape[0]))
             print("{0:1.2f} seconds.\n".format(time.time()-t))
         df['index'] = df['index'].astype('int')
+    for col in df.columns:
+        df.loc[df[col] != df[col],col] = 0
     return df
 
 
@@ -246,6 +280,7 @@ def expand_column_X(
         max_enum_ans = max(column_small_X['enum_answer_search'])
         max_ans_score = max(column_small_X['answer_count_score'])
         max_val_score = max(column_small_X['value_score'])
+        max_secondary_search = max(column_small_X['secondary_search'])
         n = column_small_X.shape[0]
         df['max_cde'] = max_cde
         df['max_dec'] = max_dec
@@ -260,6 +295,7 @@ def expand_column_X(
         df['max_enum_ans'] = max_enum_ans
         df['max_ans_score'] = max_ans_score
         df['max_val_score'] = max_val_score
+        df['max_secondary_search'] = max_secondary_search
         df['n'] = n
         df['pct_cde'] = sum(df['ftsearch_cde'] > 0)/n
         df['pct_dec'] = sum(df['ftsearch_dec'] > 0)/n
@@ -274,6 +310,7 @@ def expand_column_X(
         df['pct_enum_ans'] = sum(df['enum_answer_search'] > 0)/n
         df['pct_ans_score'] = sum(df['answer_count_score'] > 0)/n
         df['pct_val_score'] = sum(df['value_score'] > 0)/n
+        df['pct_secondary_search'] = sum(df['secondary_search'] > 0)/n
         df['cde_frac'] = 0 if max_cde == 0 else df['ftsearch_cde']/max_cde
         df['dec_frac'] = 0 if max_dec == 0 else df['ftsearch_dec']/max_dec
         df['que_frac'] = 0 if max_que == 0 else df['ftsearch_question']/max_que
@@ -289,6 +326,8 @@ def expand_column_X(
         df['val_score_frac'] = 0 if max_val_score == 0 else df['value_score']/max_val_score
         df['logn'] = np.log(n)
         df['index'] = df['index'].astype('int')
+        for col in df.columns:
+            df.loc[df[col] != df[col],col] = 0
     return df
 
 def append_target_metrics(

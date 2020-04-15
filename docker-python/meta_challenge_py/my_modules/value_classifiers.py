@@ -21,7 +21,7 @@ def classify_values(col_values,cde_index,g):
             output_list.append(classification_dict)
     else:
         for v in col_values:
-            classification_dict = classify_datatype(v,value_domain_attributes[2])
+            classification_dict = classify_datatype(v,value_domain_attributes[0])
             output_list.append(classification_dict)
     return (output_list)
 
