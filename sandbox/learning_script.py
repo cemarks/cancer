@@ -1,12 +1,13 @@
 import pandas as pd
 import os, pickle
 import numpy as np
-from sklearn.linear_model import Ridge,LogisticRegression
+from sklearn.linear_model import Ridge,LogisticRegression,Lasso
 from sklearn.model_selection import KFold
-# from sklearn.ensemble import RandomForestClassifier,RandomForestRegressor
+from sklearn.ensemble import RandomForestClassifier,RandomForestRegressor
 # from sklearn import svm
-from matplotlib import pyplot as plt
 from random import sample
+
+from my_modules.learning_models import *
 
 WORKING_DIR = "/home/cemarks/Projects/cancer/sandbox"
 MODEL_DIR = "/home/cemarks/Projects/cancer/sandbox"
@@ -118,12 +119,12 @@ with open(os.path.join(MODEL_DIR,'nomatch_model.pkl'), 'wb') as f:
 # Round II: get best value columns
 
 # Only train on columns that have matches
-X_VALUE_REGRESS = X.loc[X['metric4']==1]
+X_VALUE_REGRESS = X.loc[X['metric2_max'] > 0]
 
 # Separate into training & test
 unique_columns=X_VALUE_REGRESS[['DB','col_no']].drop_duplicates().values
 rand_ints = np.random.permutation(range(len(unique_columns)))
-train_test_splitpoint = int(0.85*len(rand_ints))
+train_test_splitpoint = int(0.75*len(rand_ints))
 training_inds = rand_ints[0:train_test_splitpoint]
 test_inds = rand_ints[train_test_splitpoint:len(rand_ints)]
 
@@ -143,18 +144,30 @@ for t,i in enumerate(test_inds):
 XX = rr_transform(X_VALUE_REGRESS.loc[train_vector])
 XT = rr_transform(X_VALUE_REGRESS.loc[test_vector])
 
-YY = X_VALUE_REGRESS['metric2_frac'].loc[train_vector].pow(2)
-YT = X_VALUE_REGRESS['metric2_frac'].loc[test_vector].pow(2)
+YY = (100**(X_VALUE_REGRESS['metric2_frac'].loc[train_vector])-1)/(100-1)
+YT = (100**(X_VALUE_REGRESS['metric2_frac'].loc[test_vector])-1)/(100-1)
 
 # Fit model
 test_scores = []
-for k in range(-4,4):
-    rfr = Ridge(
-        alpha=10**k,
-        fit_intercept = True,
-        normalize= True,
-        tol = 0.00001,
-        solver='lsqr', # auto, svd, cholesky, lsqr, sparse_cg, sag, saga
+#for k in range(-2,3):
+for k in ['auto']:
+    # rfr = Ridge(
+    #     alpha=10**k,
+    #     fit_intercept = True,
+    #     normalize= True,
+    #     tol = 0.00001,
+    #     solver='lsqr', # auto, svd, cholesky, lsqr, sparse_cg, sag, saga
+    # )
+    # rfr = Lasso(
+    #     alpha=10**(k-6),
+    #     fit_intercept = True,
+    #     normalize= True,
+    #     tol = 0.00001,
+    # )
+    rfr = RandomForestRegressor(
+        n_estimators = 80,
+        max_features = k, # auto,sqrt,log2, [float], or [int]
+        max_samples = 12000
     )
     rfr.fit(XX,YY)
     print(k)
@@ -163,8 +176,8 @@ for k in range(-4,4):
     print(ts)
     print()
     test_scores.append(ts)
-
-best_alpha = list(range(-4,4))[np.argmax(test_scores)]
+k
+best_alpha = list(range(-2,3))[np.argmax(test_scores)]
 rfr = Ridge(
     alpha=10 ** best_alpha,
     fit_intercept = True,
@@ -172,10 +185,18 @@ rfr = Ridge(
     tol = 0.00001,
     solver='lsqr', # auto, svd, cholesky, lsqr, sparse_cg, sag, saga
 )
-# rfr.fit(Z[predictor_columns].loc[train_vector],(Z['metric2'].loc[train_vector]))
-# print(k)
-# print(rfr.score(Z[predictor_columns].loc[train_vector],(Z['metric2'].loc[train_vector])))
-# print(rfr.score(Z[predictor_columns].loc[test_vector],(Z['metric2'].loc[test_vector])))
+# best_alpha = list(range(-2,3))[np.argmax(test_scores)]
+# rfr = Lasso(
+#     alpha=10 ** (best_alpha-6),
+#     fit_intercept = True,
+#     normalize= True,
+#     tol = 0.00001,
+# )
+rfr = RandomForestRegressor(
+    n_estimators = 200,
+    max_features = 18, # auto,sqrt,log2, [float], or [int]
+    max_samples = 12000
+)
 rfr.fit(XX,YY)
 print(rfr.score(XX,YY))
 print(rfr.score(XT,YT))

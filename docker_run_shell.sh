@@ -1,4 +1,4 @@
-docker run -it --name cancer \
+docker run -it --rm --name cancer \
 -v ${HOME}/Projects/cancer/mount_folder/input:/input \
 -v ${HOME}/Projects/cancer/mount_folder/output:/output \
 -v ${HOME}/Projects/cancer/mount_folder/data:/data \

@@ -44,6 +44,209 @@ Outcome-Predictors-leaderboard: 2.73343
 ROI-Masks-leaderboard: 3.01932
 
 
+=== v1--v2 HYBRID ===
+ROI-Masks-leaderboard-Submission.json
+2.8864734299516908
+
+REMBRANDT-leaderboard-Submission.json
+1.8908677570358707
+
+Outcome-Predictors-leaderboard-Submission.json
+2.5865608465608467
+
+APOLLO-2-leaderboard-Submission.json
+1.9220526001776002
+
+==============
+
+
+==============================
+=========VERSION 1==========
+
+REMBRANDT-leaderboard: 1.89581
+APOLLO-2-leaderboard: 2.36301
+Outcome-Predictors-leaderboard: 2.69868
+ROI-Masks-leaderboard: 3.16908
+????????????
+
+ROI-Masks-leaderboard-Submission.json
+2.041062801932367
+
+REMBRANDT-leaderboard-Submission.json
+1.0674101457590195
+
+Outcome-Predictors-leaderboard-Submission.json
+2.0701666666666667
+
+APOLLO-2-leaderboard-Submission.json
+1.970221792096792
+
+==========ACTUAL=============
+
+
+ APOLLO-2_score : 1.5852 
+ Outcome-Predictors_score : 2.1605 
+ REMBRANDT_score : 2.2031 
+ ROI-Masks_score : 2.6756 
+ weighted_avg : 2.074
+
+==============================
+=========VERSION 2==========
+
+ROI-Masks-leaderboard-Submission.json
+2.8864734299516908
+
+REMBRANDT-leaderboard-Submission.json
+1.8908677570358707
+
+Outcome-Predictors-leaderboard-Submission.json
+2.5865608465608467
+
+APOLLO-2-leaderboard-Submission.json
+1.9220526001776002
+
+
+==========ACTUAL=============
+
+APOLLO-2_score : 1.5852 
+Outcome-Predictors_score : 2.1605 
+REMBRANDT_score : 2.2031 
+ROI-Masks_score : 2.5625 
+weighted_avg : 2.055
+
+
+==============================
+=========VERSION 3 SO FAR==========
+0.2,0.4,0.5
+REMBRANDT-leaderboard: 1.65299
+APOLLO-2-leaderboard: 2.14135
+Outcome-Predictors-leaderboard: 2.56735
+ROI-Masks-leaderboard: 2.86715
+
+0.2,0.4,0.5
+ROI-Masks-leaderboard-Submission.json
+2.7342995169082123
+
+REMBRANDT-leaderboard-Submission.json
+1.692423312591426
+
+Outcome-Predictors-leaderboard-Submission.json
+2.4849920634920637
+
+APOLLO-2-leaderboard-Submission.json
+1.9399337930587932
+
+
+==========ACTUAL=============
+
+
+
+
+
+==============================
+=========VERSION 3a SO FAR==========
+0.2,0.4,0.5
+REMBRANDT-leaderboard: 1.64926
+APOLLO-2-leaderboard: 2.20383
+Outcome-Predictors-leaderboard: 2.55077
+ROI-Masks-leaderboard: 2.88599
+
+0.25,0.45,0.45
+REMBRANDT-leaderboard: 1.50037
+APOLLO-2-leaderboard: 2.14701
+Outcome-Predictors-leaderboard: 2.55077
+ROI-Masks-leaderboard: 2.92947
+
+0.15,0.25,0.45
+REMBRANDT-leaderboard: 1.81402
+APOLLO-2-leaderboard: 2.14739
+Outcome-Predictors-leaderboard: 2.60670
+ROI-Masks-leaderboard: 3.10338
+
+0.15,0.4,0.45
+REMBRANDT-leaderboard: 1.64926
+APOLLO-2-leaderboard: 2.16974
+Outcome-Predictors-leaderboard: 2.57077
+ROI-Masks-leaderboard: 2.92947
+
+0.25,0.25,0.45
+REMBRANDT-leaderboard: 1.66513
+APOLLO-2-leaderboard: 2.14739
+Outcome-Predictors-leaderboard: 2.60670
+ROI-Masks-leaderboard: 3.10338
+
+0.2,0.25,0.5
+REMBRANDT-leaderboard: 1.81402
+APOLLO-2-leaderboard: 2.18148
+Outcome-Predictors-leaderboard: 2.58670
+ROI-Masks-leaderboard: 3.05990
+
+
+0.2,0.25,0.5
+REMBRANDT-leaderboard: 1.81402
+APOLLO-2-leaderboard: 2.18148
+Outcome-Predictors-leaderboard: 2.58670
+ROI-Masks-leaderboard: 3.05990
+
+
+==========ACTUAL=============
+
+
+
+
+
+===========MORE==========
+
+0.25,0.33,0.5 (l1)
+REMBRANDT-leaderboard: 1.50632
+APOLLO-2-leaderboard: 2.14893
+Outcome-Predictors-leaderboard: 2.56735
+ROI-Masks-leaderboard: 2.86715
+
+
+0.1,0.33,0.5
+REMBRANDT-leaderboard: 1.63743
+APOLLO-2-leaderboard: 2.11862
+Outcome-Predictors-leaderboard: 2.56735
+ROI-Masks-leaderboard: 2.79710
+
+0.2,0.25,0.5
+REMBRANDT-leaderboard: 1.81966
+APOLLO-2-leaderboard: 2.09059
+Outcome-Predictors-leaderboard: 2.57994
+ROI-Masks-leaderboard: 2.93961
+
+0.25,0.25,0.4
+REMBRANDT-leaderboard: 1.66632
+APOLLO-2-leaderboard: 2.09438
+Outcome-Predictors-leaderboard: 2.61727
+ROI-Masks-leaderboard: 2.98309
+
+
+0.25,0.3,0.6
+REMBRANDT-leaderboard: 1.42985
+APOLLO-2-leaderboard: 2.10196
+Outcome-Predictors-leaderboard: 2.53068
+ROI-Masks-leaderboard: 2.54831
+
+0.2,0.4,0.4
+REMBRANDT-leaderboard: 1.65299
+APOLLO-2-leaderboard: 2.13756
+Outcome-Predictors-leaderboard: 2.60468
+ROI-Masks-leaderboard: 2.91063
+
+0.2,0.3,0.4
+REMBRANDT-leaderboard: 1.73966
+APOLLO-2-leaderboard: 2.09059
+Outcome-Predictors-leaderboard: 2.60468
+ROI-Masks-leaderboard: 2.85266
+
+0.2,0.4,0.5
+REMBRANDT-leaderboard: 1.65299
+APOLLO-2-leaderboard: 2.14135
+Outcome-Predictors-leaderboard: 2.56735
+ROI-Masks-leaderboard: 2.86715
+
 import os
 import json
 from my_modules import score_functions,utils

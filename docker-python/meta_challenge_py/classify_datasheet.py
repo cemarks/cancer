@@ -25,7 +25,7 @@ VALUE_MODEL_PATH = '/models/value_regression.pkl'
 # VALUE_MODEL_PATH = '/home/cemarks/Projects/cancer/sandbox/value_regression.pkl'
 
 # Nomatch model output cutoffs
-NOMATCH_CUTOFFS = [0.15,0.3,0.5]
+NOMATCH_CUTOFFS = [0.2,0.25,0.5]
 
 def nomatch_prob(column_df,nomatch_model):
     X = learning_models.lr_transform(column_df.iloc[0:1])

@@ -2,6 +2,7 @@
 
 
 from sklearn.preprocessing import PolynomialFeatures
+from matplotlib import pyplot as plt
 
 
 def lr_transform(x):
@@ -30,7 +31,7 @@ def lr_transform(x):
         # "pct_syn_propmax",
         # "pct_syn_objmax",
         # "pct_enum_concept",
-        # "pct_enum_ans",
+        "pct_enum_ans",
         # "pct_ans_score",
         # "pct_val_score",
         # "pct_secondary_search",
@@ -46,11 +47,11 @@ def lr_transform(x):
 
 def rr_transform(x):
     predictor_columns = [
-        "secondary_search",
+        # "secondary_search",
         # "ftsearch_cde",
-        "ftsearch_dec",
+        # "ftsearch_dec",
         # "syn_classsum",
-        "syn_propsum",
+        # "syn_propsum",
         # "syn_objsum",
         # "syn_classmax",
         # "syn_propmax",
@@ -59,7 +60,7 @@ def rr_transform(x):
         # "enum_concept_search",
         # "enum_answer_search",
         # "answer_count_score",
-        "value_score",
+        # "value_score",
         # "max_cde",
         # "max_dec",
         # "max_que",
@@ -79,33 +80,34 @@ def rr_transform(x):
         # "pct_que",
         # "pct_syn_classsum",
         # "pct_syn_propsum",
-        "pct_syn_objsum",
+        # "pct_syn_objsum",
         # "pct_syn_classmax",
         # "pct_syn_propmax",
-        #"pct_syn_objmax",
+        # "pct_syn_objmax",
         # "pct_enum_concept",
         # "pct_enum_ans",
         # "pct_ans_score",
         # "pct_val_score",
-        "pct_secondary_search",
+        # "pct_secondary_search",
         "cde_frac",
-        # "dec_frac",
+        "dec_frac",
         "que_frac",
         # "syn_classsum_frac",
         # "syn_propsum_frac",
-        # "syn_objsum_frac",
+        "syn_objsum_frac",
         # "syn_classmax_frac",
         "syn_propmax_frac",
         # "syn_objmax_frac",
         "enum_concept_frac",
         # "enum_ans_frac",
-        # "ans_score_frac",
-        # "val_score_frac",
-        "n",
-        "logn"
+        "ans_score_frac",
+        "val_score_frac",
+        # "n",
+        # "logn"
     ]
-    poly = PolynomialFeatures(degree = 2)
-    Z_poly = poly.fit_transform(x[predictor_columns])
+    # poly = PolynomialFeatures(degree = 2)
+    # Z_poly = poly.fit_transform(x[predictor_columns])
+    Z_poly = x[predictor_columns]
     return Z_poly
 
 
