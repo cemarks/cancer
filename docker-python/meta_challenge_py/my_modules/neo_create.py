@@ -378,7 +378,7 @@ if __name__ == "__main__":
     else:
         REF_DIR = "/data"
     t = data_loader.read_file("Thesaurus.tsv",REF_DIR)
-    c = data_loader.read_file("caDSR-export-20200402-0932.tsv",REF_DIR)
+    c = data_loader.read_file("caDSR-export.tsv",REF_DIR)
     graphDB = utils.neo4j_connect()
     with graphDB.session() as q:
         q.run("CREATE CONSTRAINT concept_code ON (concept:Concept) ASSERT concept.CODE IS UNIQUE")
