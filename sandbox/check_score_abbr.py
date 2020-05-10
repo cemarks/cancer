@@ -11,7 +11,7 @@ WORKING_DIR = "/home/cemarks/Projects/cancer/sandbox"
 MODEL_DIR = "/home/cemarks/Projects/cancer/sandbox"
 ANNOTATION_JSON_DIR = "/home/cemarks/Projects/cancer/data/leaderboard"
 
-NOMATCH_CUTOFFS = [0.19,0.23,0.48]
+NOMATCH_CUTOFFS = [0.18,0.22,0.45]
 
 def nomatch_score(de_name,result_no):
     if de_name == "NOMATCH":

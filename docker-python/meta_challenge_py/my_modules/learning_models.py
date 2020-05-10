@@ -3,20 +3,21 @@
 
 from sklearn.preprocessing import PolynomialFeatures
 from matplotlib import pyplot as plt
+import numpy as np
 
 
 def lr_transform(x):
     predictor_columns = [
-        "max_cde",
-        "max_dec",
-        "max_que",
+        # "max_cde",
+        # "max_dec",
+        # "max_que",
         # "max_syn_classsum",
         # "max_syn_propsum",
         # "max_syn_objsum",
         # "max_syn_classmax",
         "max_syn_propmax",
         # "max_syn_objmax",
-        # "max_enum_concept",
+        "max_enum_concept",
         # "max_enum_ans",
         # "max_ans_score",
         # "max_val_score",
@@ -25,24 +26,60 @@ def lr_transform(x):
         # "pct_dec",
         # "pct_que",
         # "pct_syn_classsum",
-        # "pct_syn_propsum",
+        "pct_syn_propsum",
         # "pct_syn_objsum",
         # "pct_syn_classmax",
         # "pct_syn_propmax",
         # "pct_syn_objmax",
         # "pct_enum_concept",
-        "pct_enum_ans",
+        # "pct_enum_ans",
         # "pct_ans_score",
         # "pct_val_score",
-        # "pct_secondary_search",
+        "pct_secondary_search",
         # "n",
         "logn"
     ]
     x_copy = x.copy()
-    x_copy['c1'] = x['pct_secondary_search'].multiply(x['max_enum_ans'])
-    x_copy['c2'] = x['pct_secondary_search'].multiply(x['max_val_score'])
-    predictor_columns = predictor_columns + ['c1','c2']
-    return(x_copy[predictor_columns].values)
+    x_copy.insert(
+        x_copy.shape[1],
+        'c1',
+        x['pct_secondary_search'].multiply(x['max_enum_ans'])
+    )
+    x_copy.insert(
+        x_copy.shape[1],
+        'c2',
+        x['pct_secondary_search'].multiply(x['max_val_score'])
+    )
+    x_copy.insert(
+        x_copy.shape[1],
+        'c3',
+        x['pct_secondary_search'].multiply(x['pct_enum_concept'])
+    )
+    x_copy.insert(
+        x_copy.shape[1],
+        'c4',
+        x['pct_secondary_search'].multiply(x['pct_que'])
+    )
+    x_copy.insert(
+        x_copy.shape[1],
+        'c5',
+        x['pct_secondary_search'].multiply(x['pct_syn_propsum'] + x['pct_syn_objsum'])
+    )
+    x_copy.insert(
+        x_copy.shape[1],
+        'c6',
+        x['pct_cde'] + x['pct_que']
+    )
+    x_copy.insert(
+        x_copy.shape[1],
+        'c7',
+        np.sqrt((x['max_cde']+1).multiply(x['max_que']+1))-1
+    )
+    predictor_columns += ['c6','c7']
+    z = x_copy[predictor_columns].values
+    poly = PolynomialFeatures(degree = 2)
+    z = poly.fit_transform(z)
+    return(z)
 
 
 def rr_transform(x):
