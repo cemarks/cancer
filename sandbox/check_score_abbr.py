@@ -11,7 +11,7 @@ WORKING_DIR = "/home/cemarks/Projects/cancer/sandbox"
 MODEL_DIR = "/home/cemarks/Projects/cancer/sandbox"
 ANNOTATION_JSON_DIR = "/home/cemarks/Projects/cancer/data/leaderboard"
 
-NOMATCH_CUTOFFS = [0.2,0.25,0.5]
+NOMATCH_CUTOFFS = [0.19,0.23,0.48]
 
 def nomatch_score(de_name,result_no):
     if de_name == "NOMATCH":
@@ -50,8 +50,12 @@ for score_file in list(X['DB'].unique()):
             nm_prob = nomatch_probs[0][1]
             value_predictor = value_model['model']
             value_ests = value_predictor.predict(learning_models.rr_transform(column_df))
-            column_df.loc[:,'value_est'] = value_ests
-            column_df.sort_values(by='value_est',axis=0,ascending=False,inplace=True)
+            column_df.insert(
+                column_df.shape[1],
+                'value_est',
+                value_ests
+            )
+            column_df = column_df.sort_values(by='value_est',axis=0,ascending=False)
             if nm_prob < NOMATCH_CUTOFFS[0]:
                 scores = [
                     match_score(column_df.iloc[0],1),

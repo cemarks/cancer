@@ -24,7 +24,7 @@ RUN pip install scipy
 RUN pip install scikit-learn
 RUN pip install pandas
 RUN pip install stringdist
-
+RUN pip install tensorflow
 
 # Python code and models
 COPY meta_challenge_py /meta_challenge_py

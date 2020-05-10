@@ -2,6 +2,7 @@ import pandas as pd
 from my_modules import utils,search_functions,score_functions,datachecks
 import numpy as np
 
+NO_VAR_VALUE = 0
 
 DISPLAY_FORMATS = [
     "mm/dd/yy",
@@ -280,7 +281,33 @@ def expand_column_X(
         max_enum_ans = max(column_small_X['enum_answer_search'])
         max_ans_score = max(column_small_X['answer_count_score'])
         max_val_score = max(column_small_X['value_score'])
-        max_secondary_search = max(column_small_X['secondary_search'])
+        mean_cde = np.mean(column_small_X['ftsearch_cde'])
+        mean_dec = np.mean(column_small_X['ftsearch_dec'])
+        mean_question = np.mean(column_small_X['ftsearch_question'])
+        mean_syn_classsum = np.mean(column_small_X['syn_classsum'])
+        mean_syn_propsum = np.mean(column_small_X['syn_propsum'])
+        mean_syn_objsum = np.mean(column_small_X['syn_objsum'])
+        mean_syn_classmax = np.mean(column_small_X['syn_classmax'])
+        mean_syn_propmax = np.mean(column_small_X['syn_propmax'])
+        mean_syn_objmax = np.mean(column_small_X['syn_objmax'])
+        mean_enum_concept = np.mean(column_small_X['enum_concept_search'])
+        mean_enum_ans = np.mean(column_small_X['enum_answer_search'])
+        mean_ans_score = np.mean(column_small_X['answer_count_score'])
+        mean_val_score = np.mean(column_small_X['value_score'])
+        std_cde = np.std(column_small_X['ftsearch_cde'])
+        std_dec = np.std(column_small_X['ftsearch_dec'])
+        std_question = np.std(column_small_X['ftsearch_question'])
+        std_syn_classsum = np.std(column_small_X['syn_classsum'])
+        std_syn_propsum = np.std(column_small_X['syn_propsum'])
+        std_syn_objsum = np.std(column_small_X['syn_objsum'])
+        std_syn_classmax = np.std(column_small_X['syn_classmax'])
+        std_syn_propmax = np.std(column_small_X['syn_propmax'])
+        std_syn_objmax = np.std(column_small_X['syn_objmax'])
+        std_enum_concept = np.std(column_small_X['enum_concept_search'])
+        std_enum_ans = np.std(column_small_X['enum_answer_search'])
+        std_ans_score = np.std(column_small_X['answer_count_score'])
+        std_val_score = np.std(column_small_X['value_score'])
+        max_secondary_search = np.mean(column_small_X['secondary_search'])
         n = column_small_X.shape[0]
         df['max_cde'] = max_cde
         df['max_dec'] = max_dec
@@ -324,6 +351,19 @@ def expand_column_X(
         df['enum_ans_frac'] = 0 if max_enum_ans == 0 else df['enum_answer_search']/max_enum_ans
         df['ans_score_frac'] = 0 if max_ans_score == 0 else df['answer_count_score']/max_ans_score
         df['val_score_frac'] = 0 if max_val_score == 0 else df['value_score']/max_val_score
+        df['cde_norm'] = NO_VAR_VALUE if std_cde == 0 else (df['ftsearch_cde'] - mean_cde)/std_cde
+        df['dec_norm'] = NO_VAR_VALUE if std_dec == 0 else (df['ftsearch_dec'] - mean_dec)/std_dec
+        df['syn_classsum_norm'] = NO_VAR_VALUE if std_syn_classsum == 0 else (df['syn_classsum'] - mean_syn_classsum)/std_syn_classsum
+        df['syn_propsum_norm'] = NO_VAR_VALUE if std_syn_propsum == 0 else (df['syn_propsum'] - mean_syn_propsum)/std_syn_propsum
+        df['syn_objsum_norm'] = NO_VAR_VALUE if std_syn_objsum == 0 else (df['syn_objsum'] - mean_syn_objsum)/std_syn_objsum
+        df['syn_classmax_norm'] = NO_VAR_VALUE if std_syn_classmax == 0 else (df['syn_classmax'] - mean_syn_classmax)/std_syn_classmax
+        df['syn_propmax_norm'] = NO_VAR_VALUE if std_syn_propmax == 0 else (df['syn_propmax'] - mean_syn_propmax)/std_syn_propmax
+        df['syn_objmax_norm'] = NO_VAR_VALUE if std_syn_objmax == 0 else (df['syn_objmax'] - mean_syn_objmax)/std_syn_objmax
+        df['question_norm'] = NO_VAR_VALUE if std_question == 0 else (df['ftsearch_question'] - mean_question)/std_question
+        df['enum_concept_norm'] = NO_VAR_VALUE if std_enum_concept == 0 else (df['enum_concept_search'] - mean_enum_concept)/std_enum_concept
+        df['enum_ans_norm'] = NO_VAR_VALUE if std_enum_ans == 0 else (df['enum_answer_search'] - mean_enum_ans)/std_enum_ans
+        df['ans_score_norm'] = NO_VAR_VALUE if std_ans_score == 0 else (df['answer_count_score'] - mean_ans_score)/std_ans_score
+        df['val_score_norm'] = NO_VAR_VALUE if std_val_score == 0 else (df['value_score'] - mean_val_score)/std_val_score
         df['logn'] = np.log(n)
         df['index'] = df['index'].astype('int')
         for col in df.columns:

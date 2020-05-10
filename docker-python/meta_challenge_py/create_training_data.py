@@ -7,7 +7,7 @@ import numpy as np
 
 
 INPUT_DIR = "/home/cemarks/Projects/cancer/data/leaderboard"
-DATABASE_ENDPOINT = "bolt://192.168.1.3:7688"
+DATABASE_ENDPOINT = "bolt://localhost:7688"
 OUTPUT_PICKLE_FILE = "/home/cemarks/Projects/cancer/sandbox/expanded_training_X.pkl"
 
 
