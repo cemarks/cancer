@@ -2,7 +2,6 @@
 
 
 from sklearn.preprocessing import PolynomialFeatures
-from matplotlib import pyplot as plt
 import numpy as np
 
 

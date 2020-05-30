@@ -12,6 +12,7 @@ from my_modules.learning_models import *
 WORKING_DIR = "/home/cemarks/Projects/cancer/sandbox"
 MODEL_DIR = "/home/cemarks/Projects/cancer/sandbox"
 
+TRAINING_SET_FRAC = 0.98
 # WORKING_DIR = "/home"
 # MODEL_DIR = WORKING_DIR
 
@@ -130,7 +131,7 @@ X_VALUE_REGRESS.insert(
 unique_columns=X_VALUE_REGRESS[['DB','col_no']].drop_duplicates().values
 rand_ints = np.random.permutation(range(len(unique_columns)))
 
-train_test_splitpoint = int(0.9*len(rand_ints))
+train_test_splitpoint = int(TRAINING_SET_FRAC*len(rand_ints))
 training_inds = rand_ints[0:train_test_splitpoint]
 test_inds = rand_ints[train_test_splitpoint:len(rand_ints)]
 
@@ -217,7 +218,7 @@ for k in RANGE:
 
 best_alpha = list(RANGE)[np.argmax(test_scores)]
 ## Submission version: over-regularize
-best_alpha = 1
+best_alpha = -0.5
 rfr = Ridge(
     alpha=10 ** best_alpha,
     fit_intercept = True,
@@ -250,14 +251,21 @@ with open(os.path.join(MODEL_DIR,'value_regression.pkl'), 'wb') as f:
     pickle.dump(model_dict,f)
 
 
-# Print ordering of test set results.
-X_VALUE_REGRESS.insert(
-    X_VALUE_REGRESS.shape[1],
-    'metric2_predict',
-    rfr.predict(
+## Print ordering of test set results.
+
+if 'metric2_predict' in X_VALUE_REGRESS.columns:
+    X_VALUE_REGRESS['metric2_predict'] = rfr.predict(
         rr_transform(X_VALUE_REGRESS)
     )
-)   
+else:
+    X_VALUE_REGRESS.insert(
+        X_VALUE_REGRESS.shape[1],
+        'metric2_predict',
+        rfr.predict(
+            rr_transform(X_VALUE_REGRESS)
+        )
+    )  
+
 metrics = []
 for i in range(len(test_inds)):
     tsv = unique_columns[test_inds[i]][0]

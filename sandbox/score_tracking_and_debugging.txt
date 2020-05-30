@@ -137,9 +137,74 @@ APOLLO-2-leaderboard-Submission.json
 1.9399337930587932
 
 
-==========ACTUAL=============
+================VERSION 6===========
+
+ROI-Masks-leaderboard-Submission.json
+3.0700483091787443
+
+REMBRANDT-leaderboard-Submission.json
+2.2506969320034576
+
+Outcome-Predictors-leaderboard-Submission.json
+2.6045
+
+APOLLO-2-leaderboard-Submission.json
+2.1748454092204095
 
 
+
+===============VERSION 7 ===========
+
+ROI-Masks-leaderboard-Submission.json
+3.0700483091787443
+
+REMBRANDT-leaderboard-Submission.json
+2.2662524875590133
+
+Outcome-Predictors-leaderboard-Submission.json
+2.5661666666666667
+
+APOLLO-2-leaderboard-Submission.json
+2.3031282375032376
+
+
+================VERSION 8===========
+
+REMBRANDT-leaderboard: 2.27605
+APOLLO-2-leaderboard: 2.45465
+Outcome-Predictors-leaderboard: 2.78020
+ROI-Masks-leaderboard: 3.39130
+
+ROI-Masks-leaderboard-Submission.json
+3.0990338164251203
+
+REMBRANDT-leaderboard-Submission.json
+2.2662524875590133
+
+Outcome-Predictors-leaderboard-Submission.json
+2.588812169312169
+
+APOLLO-2-leaderboard-Submission.json
+2.2442898536648537
+
+================VERSION 9===========
+
+REMBRANDT-leaderboard: 2.27338
+APOLLO-2-leaderboard: 2.49367
+Outcome-Predictors-leaderboard: 2.75422
+ROI-Masks-leaderboard: 3.39130
+
+ROI-Masks-leaderboard-Submission.json
+3.0990338164251203
+
+REMBRANDT-leaderboard-Submission.json
+2.2662524875590133
+
+Outcome-Predictors-leaderboard-Submission.json
+2.5678333333333336
+
+APOLLO-2-leaderboard-Submission.json
+2.317017126392127
 
 
 
