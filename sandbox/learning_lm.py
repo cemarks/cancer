@@ -38,6 +38,84 @@ X.loc[X['DB'] == 'ROI-Masks-leaderboard',col_inds] = 23
 # Only train on columns that have matches
 X_VALUE_REGRESS = X.loc[X['metric2_max'] > 0]
 
+def rr_transform(x):
+    predictor_columns = [
+        "secondary_search",
+        "ftsearch_cde",
+        # "ftsearch_dec",
+        # "syn_classsum",
+        # "syn_propsum",
+        # "syn_objsum",
+        # "syn_classmax",
+        # "syn_propmax",
+        # "syn_objmax",
+        # "ftsearch_question",
+        "enum_concept_search",
+        # "enum_answer_search",
+        # "answer_count_score",
+        # "value_score",
+        # "max_cde",
+        # "max_dec",
+        # "max_que",
+        # "max_syn_classsum",
+        # "max_syn_propsum",
+        # "max_syn_objsum",
+        # "max_syn_classmax",
+        # "max_syn_propmax",
+        # "max_syn_objmax",
+        # "max_enum_concept",
+        # "max_enum_ans",
+        # "max_ans_score",
+        # "max_val_score",
+        # "max_secondary_search",
+        # "pct_cde",
+        # "pct_dec",
+        "pct_que",
+        # "pct_syn_classsum",
+        # "pct_syn_propsum",
+        # "pct_syn_objsum",
+        # "pct_syn_classmax",
+        # "pct_syn_propmax",
+        # "pct_syn_objmax",
+        # "pct_enum_concept",
+        # "pct_enum_ans",
+        # "pct_ans_score",
+        # "pct_val_score",
+        # "pct_secondary_search",
+        # "cde_frac",
+        # "dec_frac",
+        # "que_frac",
+        # "syn_classsum_frac",
+        # "syn_propsum_frac",
+        # "syn_objsum_frac",
+        # "syn_classmax_frac",
+        # "syn_propmax_frac",
+        # "syn_objmax_frac",
+        # "enum_concept_frac",
+        # "enum_ans_frac",
+        # "ans_score_frac",
+        # "val_score_frac",
+        "cde_norm",
+        # "dec_norm",
+        # "syn_classsum_norm",
+        # "syn_propsum_norm",
+        # "syn_objsum_norm",
+        # "syn_classmax_norm",
+        # "syn_propmax_norm",
+        "syn_objmax_norm",
+        "question_norm",
+        # "enum_concept_norm",
+        "enum_ans_norm",
+        # "ans_score_norm",
+        "val_score_norm",
+        # "n",
+        "logn"
+    ]
+    poly = PolynomialFeatures(degree = 2)
+    Z_poly = poly.fit_transform(x[predictor_columns])
+    # Z_poly = x[predictor_columns]
+    return Z_poly
+
 
 BEST_VALUE = 0.01
 
@@ -52,7 +130,7 @@ X_VALUE_REGRESS.insert(
 unique_columns=X_VALUE_REGRESS[['DB','col_no']].drop_duplicates().values
 rand_ints = np.random.permutation(range(len(unique_columns)))
 
-train_test_splitpoint = int(0.75*len(rand_ints))
+train_test_splitpoint = int(0.9*len(rand_ints))
 training_inds = rand_ints[0:train_test_splitpoint]
 test_inds = rand_ints[train_test_splitpoint:len(rand_ints)]
 
@@ -95,7 +173,7 @@ YT = (EXP ** X_VALUE_REGRESS['Y'].loc[test_vector] - 1)/(EXP-1)
 # YY = np.log((BASE-1)*X_VALUE_REGRESS['Y'].loc[train_vector]+1)/np.log(BASE)
 # YT = np.log((BASE-1)*X_VALUE_REGRESS['Y'].loc[test_vector]+1)/np.log(BASE)
 
-RANGE = range(-5,3)
+RANGE = range(-6,3)
 test_scores = []
 for k in RANGE:
     rfr = Ridge(
@@ -138,6 +216,8 @@ for k in RANGE:
 
 
 best_alpha = list(RANGE)[np.argmax(test_scores)]
+## Submission version: over-regularize
+best_alpha = 1
 rfr = Ridge(
     alpha=10 ** best_alpha,
     fit_intercept = True,
@@ -192,9 +272,9 @@ for i in range(len(test_inds)):
             ]
         )
     )
-    for ii in range(min(20,len(display_list))):
-        print(display_list[ii])
-    print()
-    print()
+    # for ii in range(min(20,len(display_list))):
+    #     print(display_list[ii])
+    # print()
+    # print()
 
 print("SCORE: {0:1.3f}".format(np.mean(metrics)))

@@ -72,6 +72,8 @@ print()
 
 # Refit best model
 best_c = list(RANGE)[mt.argmax()]
+## Submission version: overregularize
+best_c = 1
 best_model = LogisticRegression(
     C = 10 ** best_c,
     penalty = PENALTY,
@@ -101,17 +103,17 @@ print(best_model.score(XA,YA))
 print(best_model.score(XR,YR))
 
 # Plot ROC curves
-probs = best_model.predict_proba(
-    XX
-)
+# probs = best_model.predict_proba(
+#     XX
+# )
 
-plot_roc(probs,YY,0.6)
+# plot_roc(probs,YY,0.6)
 
-probs = logreg.predict_proba(
-    XT
-)
+# probs = logreg.predict_proba(
+#     XT
+# )
 
-plot_roc(probs,YT,0.5)
+# plot_roc(probs,YT,0.5)
 
 model_dict = {
     'model': best_model

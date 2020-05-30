@@ -17,14 +17,8 @@ ENV PYTHONPATH=/meta_challenge_py
 COPY neo4j-community-4.0.0 /neo4j
 
 # Python packages
-RUN pip install matplotlib
-RUN pip install neo4j
-RUN pip install numpy
-RUN pip install scipy
-RUN pip install scikit-learn
-RUN pip install pandas
-RUN pip install stringdist
-RUN pip install tensorflow
+COPY requirements.txt /requirements.txt
+RUN pip install -r /requirements.txt
 
 # Python code and models
 COPY meta_challenge_py /meta_challenge_py
